@@ -391,7 +391,7 @@ def ucak_ikon_onbellegi_olustur(base_img):
 
 if EKSTRA_MODULLER_OK:
     UCAK_BASE_IMG   = ucak_base_ciz()   
-    UCAK_IKON_CACHE = {} # BURADA SADECE BOŞ TANIMLIYORUZ, UYGULAMA AÇILINCA DOLDURACAĞIZ              
+    UCAK_IKON_CACHE = {}                
     UCAK_TK_IMG     = None
     ucak_marker     = None
 
@@ -404,7 +404,6 @@ try:
 except Exception as e:
     print(f"[HATA] MAVLink bağlantı hatası: {e}")
     baglanti = None
-
 
 # ══════════════════════════════════════════════════════════════
 #  TEKNOFEST PANEL — PAYLAŞILAN STATE
@@ -500,7 +499,6 @@ app.geometry("1600x900")
 app.title("KARAN İHA-YKİ")
 app.configure(bg="#02050e")
 
-# --- HATA ÇÖZÜMÜ: ANA PENCERE OLUŞTUKTAN SONRA ÖNBELLEĞİ DOLDURUYORUZ ---
 if EKSTRA_MODULLER_OK and UCAK_BASE_IMG is not None:
     UCAK_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_BASE_IMG)
 
@@ -527,21 +525,26 @@ sekme_frames = {}
 sekme_btnler = {}   
 
 def sekme_ac(ad):
-    """Anında sekme değişimi (Tkinter Grid Yırtılmasını Önler)"""
     aktif_sekme[0] = ad
     for k, b in sekme_btnler.items():
         if k == ad: b.configure(fg_color="#1e3a5f", text_color="#00ffcc")
         else: b.configure(fg_color="transparent", text_color="#64748b")
-    f = sekme_frames.get(ad)
-    if f: f.tkraise() # SIFIR GECİKME (Silmeden en öne alır)
+    def _switch():
+        for k, f in sekme_frames.items():
+            if k in _popout_windows and _popout_windows[k].winfo_exists(): continue
+            if k == ad: f.pack(fill="both", expand=True)
+            else: f.pack_forget()
+    app.after(1, _switch)
 
 _popout_windows = {}   
-_kamera_labels = [] # Tüm kamera render hedeflerini tutar
+_kamera_labels = [] 
 
 def pop_out(ad, title):
-    """Hatasız Çift Pencere Motoru (TclError Önleyici Bağımsız Klonlama)"""
     if ad in _popout_windows and _popout_windows[ad].winfo_exists():
         _popout_windows[ad].lift(); return
+
+    f = sekme_frames.get(ad)
+    if f is None: return
 
     win = ctk.CTkToplevel(app)
     win.title(f"⤢  {title}")
@@ -549,22 +552,15 @@ def pop_out(ad, title):
     win.configure(bg="#020810")
     _popout_windows[ad] = win
 
-    if ad == "kamera":
-        lbl_kamera_pop = tk.Label(win, bg="#000000")
-        lbl_kamera_pop.pack(fill="both", expand=True)
-        _kamera_labels.append(lbl_kamera_pop)
-        def on_close_kamera():
-            if lbl_kamera_pop in _kamera_labels: _kamera_labels.remove(lbl_kamera_pop)
-            win.destroy()
-            _popout_windows.pop(ad, None)
-        win.protocol("WM_DELETE_WINDOW", on_close_kamera)
-        
-    elif ad == "yarisma":
-        _build_panel(win)
-        def on_close_yarisma():
-            win.destroy()
-            _popout_windows.pop(ad, None)
-        win.protocol("WM_DELETE_WINDOW", on_close_yarisma)
+    if aktif_sekme[0] == ad: f.pack_forget()
+    f.pack(in_=win, fill="both", expand=True)
+
+    def on_close():
+        f.pack_forget()
+        win.destroy()
+        _popout_windows.pop(ad, None)
+        if aktif_sekme[0] == ad: f.pack(fill="both", expand=True)
+    win.protocol("WM_DELETE_WINDOW", on_close)
 
 # ── Üst Bar ───────────────────────────────────────────────────
 top = ctk.CTkFrame(app, height=52, fg_color="#04080f", corner_radius=0)
@@ -588,23 +584,19 @@ for k, label in TAB_DEFS:
     b.pack(side="left", padx=3)
     sekme_btnler[k] = b
 
-# Yalnızca desteklenen menülere pop-out koy
 for k, label in TAB_DEFS:
-    if k != "yki": # YKİ ana paneldir, sadece kamera ve yarışma sekmeleri koparılabilir.
+    if k != "yki": 
         titles = {"kamera":"FPV Kamera - Tam Ekran", "yarisma":"TEKNOFEST Yarışma Sunucusu"}
         ctk.CTkButton(tab_bar, text="⤢", font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
             fg_color="#050d1a", text_color="#38BDF8", hover_color="#1e3a5f", corner_radius=6, height=32, width=36,
             command=lambda x=k, t=titles[k]: pop_out(x, t)).pack(side="left", padx=(0,6))
 
-# ── Ana sekme container (Gecikmesiz Katmanlar) ─────────────
+# ── Ana sekme container ─────────────
 tab_container = ctk.CTkFrame(app, fg_color="transparent", corner_radius=0)
 tab_container.pack(fill="both", expand=True)
-tab_container.grid_rowconfigure(0, weight=1)
-tab_container.grid_columnconfigure(0, weight=1)
 
 # 1. YKİ SEKMESİ
 yki_frame = ctk.CTkFrame(tab_container, fg_color="transparent")
-yki_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["yki"] = yki_frame
 
 main = ctk.CTkFrame(yki_frame, fg_color="transparent")
@@ -649,9 +641,6 @@ if EKSTRA_MODULLER_OK:
 frame3d = ctk.CTkFrame(main, corner_radius=12, fg_color="#040810", border_width=2, border_color="#00ffcc")
 frame3d.grid(row=0, column=1, padx=(0,10), pady=0, sticky="nsew")
 
-if OPENGL_OK:
-    lbl_hud = tk.Label(frame3d, bg="#040810"); lbl_hud.pack(fill="both", expand=True, padx=2, pady=(8,2))
-
 def _mav_bg(fn): threading.Thread(target=lambda: _safe_mav(fn), daemon=True).start()
 def _safe_mav(fn):
     try: fn()
@@ -666,14 +655,13 @@ def _takeoff(alt=50):
     if not baglanti: return
     _mav_bg(lambda: baglanti.mav.command_long_send(baglanti.target_system, baglanti.target_component, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0,0,0,0,0,0, alt))
 
-# ── SİMETRİK UÇUŞ KONTROL BUTONLARI (HUD alt kısım) ──────────
+# ── DÜZELTME: KONTROL BUTONLARINI ÖNCE YERLEŞTİR Kİ KAYBOLMASIN ──────────
 ctrl_bar = ctk.CTkFrame(frame3d, fg_color="#06111a", corner_radius=8, border_width=1, border_color="#0f2a4a")
 ctrl_bar.pack(fill="x", side="bottom", padx=10, pady=(0,10))
 ctrl_bar.pack_propagate(False)
 ctrl_bar.configure(height=90) 
 
-for i in range(5):
-    ctrl_bar.grid_columnconfigure(i, weight=1 if i!=2 else 0)
+for i in range(5): ctrl_bar.grid_columnconfigure(i, weight=1 if i!=2 else 0)
 ctrl_bar.grid_columnconfigure(2, minsize=160)
 ctrl_bar.grid_rowconfigure(0, weight=1); ctrl_bar.grid_rowconfigure(1, weight=1)
 
@@ -692,6 +680,9 @@ ctk.CTkButton(ctrl_bar, text="🎯 GUIDED", fg_color="#1e3a5f", hover_color="#25
 ctk.CTkButton(ctrl_bar, text="🏠 RTL", fg_color="#7c2d12", hover_color="#c2410c", font=_FKB, text_color="#e2e8f0", command=lambda:_set_mode("RTL")).grid(row=1, column=3, padx=6, pady=(4,8), sticky="ew")
 ctk.CTkButton(ctrl_bar, text="⬇ LAND", fg_color="#4c1d95", hover_color="#6d28d9", font=_FKB, text_color="#e2e8f0", command=lambda:_set_mode("LAND")).grid(row=1, column=4, padx=6, pady=(4,8), sticky="ew")
 
+# ── 3D HUD'I SONRA YERLEŞTİR Kİ KALAN TÜM BOŞLUĞU KAPLASIN ──────────
+if OPENGL_OK:
+    lbl_hud = tk.Label(frame3d, bg="#040810"); lbl_hud.pack(fill="both", expand=True, padx=2, pady=(8,2))
 
 # ── SAĞ PANEL (Sıfır kasmayan scroll motoru) ────────────
 _right_border = ctk.CTkFrame(main, width=395, corner_radius=12, fg_color="#0b1320", border_width=1, border_color="#1e293b")
@@ -872,7 +863,6 @@ batt_bot = ctk.CTkFrame(c6, fg_color="transparent"); batt_bot.pack(fill="x", pad
 ctk.CTkLabel(batt_bot, text="Kalan Kapasite", font=FU, text_color="#94a3b8").pack(side="left")
 ctk.CTkLabel(batt_bot, textvariable=SV["bmah"], font=ctk.CTkFont(family="Consolas", size=18, weight="bold"), text_color="#a78bfa").pack(side="right")
 
-
 # ══════════════════════════════════════════════════════════════
 #  DÖNGÜLER, GÜVENLİK VE MULTITHREADING (YENİ MİMARİ)
 # ══════════════════════════════════════════════════════════════
@@ -1017,7 +1007,7 @@ def master_loop():
             lbl_kamera.imgtk = imgtk; lbl_kamera.configure(image=imgtk)
             
             try:
-                if aktif_sekme[0] == "kamera":
+                if aktif_sekme[0] == "kamera" or "kamera" in _popout_windows:
                     fw = max(lbl_kamera_fs.winfo_width(), 1)
                     fh = max(lbl_kamera_fs.winfo_height(), 1)
                     if fw > 10 and fh > 10:
@@ -1316,6 +1306,8 @@ def _build_panel(pwin=None):
     log_tb.grid(row=10, column=0, padx=10, pady=(0,8), sticky="ew"); log_tb.configure(state="disabled")
 
     def _panel_update():
+        if not pwin.winfo_exists(): return # --- HATA ÇÖZÜMÜ: Pencere kapalıysa döngüyü durdur ---
+        
         lbl_p_lat.configure(text=f"{D.get('lat',0.0):.5f} °")
         lbl_p_lon.configure(text=f"{D.get('lon',0.0):.5f} °")
         lbl_p_alt.configure(text=f"{_agl_val[0]:.1f} m")
