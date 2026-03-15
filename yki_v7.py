@@ -297,25 +297,36 @@ def _hud_arka_plan():
                                            D.get("pitch", 0.0), PITCH_OMEGA, PITCH_ZETA, dt)
 
                 # ── Koordineli dönüş: bank → görsel yaw kıvrılması ───────
-                # Gerçek uçakta bank açısı arttıkça burun dönmeye başlar.
-                # yaw_target = roll * 0.18 rad (küçük bir kuplaj)
-                coordinated_yaw = roll_pos * 0.18
+                # Kuyruğun arkasından bakınca: sağ banka → burun sağa döner
+                # yaw miktarı küçük tutulur (0.12) - gerçekçi ama abartısız
+                coordinated_yaw = roll_pos * 0.12
                 yaw_vis, yaw_vel = rk4(yaw_vis, yaw_vel,
                                        coordinated_yaw, YAW_OMEGA, YAW_ZETA, dt)
 
-                # ── OpenGL render ─────────────────────────────────────────
+                # ── Chase-Cam Render (kuyruk arkası bakış açısı) ─────────
                 glViewport(0, 0, HUD_W, HUD_H)
                 glClearColor(0.02, 0.04, 0.10, 1.0)
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
                 glMatrixMode(GL_PROJECTION); glLoadIdentity()
-                gluPerspective(45, HUD_W / HUD_H, 0.5, 200.0)
+                # FOV 55° → daha geniş, kanatlar rahat sığar
+                gluPerspective(55, HUD_W / HUD_H, 0.3, 200.0)
                 glMatrixMode(GL_MODELVIEW); glLoadIdentity()
-                glTranslatef(0.0, 0.3, -3.6)
 
-                # Dönüş sırası: yaw → pitch → roll (doğru Euler sırası)
-                glRotatef(math.degrees(yaw_vis),    0, 1, 0)   # yaw
-                glRotatef(math.degrees(pitch_pos),  1, 0, 0)   # pitch
-                glRotatef(math.degrees(-roll_pos),  0, 0, 1)   # roll
+                # Kamera: kuyruğun hemen gerisinde, hafif yukarıdan
+                #   Z=-3.2 → ne çok yakın ne çok uzak
+                #   Y=-0.18 → kamera modelin biraz altında → ufuk hizası doğal
+                glTranslatef(0.0, -0.18, -3.2)
+
+                # 180° Y ekseni → modeli bize kuyruğunu döndür
+                glRotatef(180.0, 0, 1, 0)
+
+                # Uçuş dinamiği (180° Y flip sonrası işaret düzeltmeleri):
+                #   Yaw:   -yaw_vis  (Y ekseni ters döndüğünden)
+                #   Pitch: -pitch_pos (X ekseni ters döndüğünden)
+                #   Roll:  +roll_pos  (Z ekseni aynı, ama görsel olarak doğru)
+                glRotatef(math.degrees(-yaw_vis),    0, 1, 0)
+                glRotatef(math.degrees(-pitch_pos),  1, 0, 0)
+                glRotatef(math.degrees( roll_pos),   0, 0, 1)
 
                 glEnable(GL_LIGHTING)
                 glColor3f(1, 1, 1)
