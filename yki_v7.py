@@ -322,7 +322,7 @@ def _hud_arka_plan():
 
                 # Kamera: model arkasında, sabit chase-cam pozisyonu
                 gluLookAt(
-                    0.0,  0.5,  4.5,   # eye: kuyruğun hemen gerisinde & yukarısında
+                    0.0,  0.4,  2.8,   # eye: kuyruğun hemen gerisinde & yukarısında
                     0.0,  0.1,  0.0,   # at:  model merkezi (hafif yukarı)
                     0.0,  1.0,  0.0    # up:  Y ekseni yukarı
                 )
