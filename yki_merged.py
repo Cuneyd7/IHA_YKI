@@ -236,7 +236,6 @@ def _hud_arka_plan():
 
         if NUMPY_OK: np_buf = np.empty((HUD_H, HUD_W, 3), dtype=np.uint8)
 
-        # ══ Uçuş Dinamiği Motoru ════════════════════════════════════════
         ROLL_OMEGA  = 8.0;   ROLL_ZETA  = 1.0   
         PITCH_OMEGA = 5.0;   PITCH_ZETA = 1.1   
         YAW_OMEGA   = 3.0;   YAW_ZETA   = 1.2   
@@ -405,6 +404,7 @@ except Exception as e:
     print(f"[HATA] MAVLink bağlantı hatası: {e}")
     baglanti = None
 
+
 # ══════════════════════════════════════════════════════════════
 #  TEKNOFEST PANEL — PAYLAŞILAN STATE
 # ══════════════════════════════════════════════════════════════
@@ -531,7 +531,6 @@ def sekme_ac(ad):
         else: b.configure(fg_color="transparent", text_color="#64748b")
     def _switch():
         for k, f in sekme_frames.items():
-            if k in _popout_windows and _popout_windows[k].winfo_exists(): continue
             if k == ad: f.pack(fill="both", expand=True)
             else: f.pack_forget()
     app.after(1, _switch)
@@ -540,11 +539,9 @@ _popout_windows = {}
 _kamera_labels = [] 
 
 def pop_out(ad, title):
+    """Sekmeyi ayrı pencerede gösterir. (TclError Önleyici Bağımsız Klonlama)"""
     if ad in _popout_windows and _popout_windows[ad].winfo_exists():
         _popout_windows[ad].lift(); return
-
-    f = sekme_frames.get(ad)
-    if f is None: return
 
     win = ctk.CTkToplevel(app)
     win.title(f"⤢  {title}")
@@ -552,15 +549,23 @@ def pop_out(ad, title):
     win.configure(bg="#020810")
     _popout_windows[ad] = win
 
-    if aktif_sekme[0] == ad: f.pack_forget()
-    f.pack(in_=win, fill="both", expand=True)
+    if ad == "kamera":
+        lbl_kamera_pop = tk.Label(win, bg="#000000")
+        lbl_kamera_pop.pack(fill="both", expand=True)
+        _kamera_labels.append(lbl_kamera_pop)
+        def on_close_kamera():
+            if lbl_kamera_pop in _kamera_labels: _kamera_labels.remove(lbl_kamera_pop)
+            win.destroy()
+            _popout_windows.pop(ad, None)
+        win.protocol("WM_DELETE_WINDOW", on_close_kamera)
+        
+    elif ad == "yarisma":
+        _build_panel(win)
+        def on_close_yarisma():
+            win.destroy()
+            _popout_windows.pop(ad, None)
+        win.protocol("WM_DELETE_WINDOW", on_close_yarisma)
 
-    def on_close():
-        f.pack_forget()
-        win.destroy()
-        _popout_windows.pop(ad, None)
-        if aktif_sekme[0] == ad: f.pack(fill="both", expand=True)
-    win.protocol("WM_DELETE_WINDOW", on_close)
 
 # ── Üst Bar ───────────────────────────────────────────────────
 top = ctk.CTkFrame(app, height=52, fg_color="#04080f", corner_radius=0)
@@ -655,7 +660,6 @@ def _takeoff(alt=50):
     if not baglanti: return
     _mav_bg(lambda: baglanti.mav.command_long_send(baglanti.target_system, baglanti.target_component, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0,0,0,0,0,0, alt))
 
-# ── DÜZELTME: KONTROL BUTONLARINI ÖNCE YERLEŞTİR Kİ KAYBOLMASIN ──────────
 ctrl_bar = ctk.CTkFrame(frame3d, fg_color="#06111a", corner_radius=8, border_width=1, border_color="#0f2a4a")
 ctrl_bar.pack(fill="x", side="bottom", padx=10, pady=(0,10))
 ctrl_bar.pack_propagate(False)
@@ -680,7 +684,6 @@ ctk.CTkButton(ctrl_bar, text="🎯 GUIDED", fg_color="#1e3a5f", hover_color="#25
 ctk.CTkButton(ctrl_bar, text="🏠 RTL", fg_color="#7c2d12", hover_color="#c2410c", font=_FKB, text_color="#e2e8f0", command=lambda:_set_mode("RTL")).grid(row=1, column=3, padx=6, pady=(4,8), sticky="ew")
 ctk.CTkButton(ctrl_bar, text="⬇ LAND", fg_color="#4c1d95", hover_color="#6d28d9", font=_FKB, text_color="#e2e8f0", command=lambda:_set_mode("LAND")).grid(row=1, column=4, padx=6, pady=(4,8), sticky="ew")
 
-# ── 3D HUD'I SONRA YERLEŞTİR Kİ KALAN TÜM BOŞLUĞU KAPLASIN ──────────
 if OPENGL_OK:
     lbl_hud = tk.Label(frame3d, bg="#040810"); lbl_hud.pack(fill="both", expand=True, padx=2, pady=(8,2))
 
@@ -863,9 +866,6 @@ batt_bot = ctk.CTkFrame(c6, fg_color="transparent"); batt_bot.pack(fill="x", pad
 ctk.CTkLabel(batt_bot, text="Kalan Kapasite", font=FU, text_color="#94a3b8").pack(side="left")
 ctk.CTkLabel(batt_bot, textvariable=SV["bmah"], font=ctk.CTkFont(family="Consolas", size=18, weight="bold"), text_color="#a78bfa").pack(side="right")
 
-# ══════════════════════════════════════════════════════════════
-#  DÖNGÜLER, GÜVENLİK VE MULTITHREADING (YENİ MİMARİ)
-# ══════════════════════════════════════════════════════════════
 def kamera_arka_plan():
     global SON_KAMERA_KARESI
     try:
@@ -1306,7 +1306,8 @@ def _build_panel(pwin=None):
     log_tb.grid(row=10, column=0, padx=10, pady=(0,8), sticky="ew"); log_tb.configure(state="disabled")
 
     def _panel_update():
-        if not pwin.winfo_exists(): return # --- HATA ÇÖZÜMÜ: Pencere kapalıysa döngüyü durdur ---
+        # --- HATA ÇÖZÜMÜ: Eğer pencere kapatıldıysa döngüyü sessizce durdur ---
+        if not pwin.winfo_exists(): return 
         
         lbl_p_lat.configure(text=f"{D.get('lat',0.0):.5f} °")
         lbl_p_lon.configure(text=f"{D.get('lon',0.0):.5f} °")
@@ -1342,7 +1343,6 @@ def _build_panel(pwin=None):
 #  KAMERA SEKMESİ — Tam Ekran FPV
 # ══════════════════════════════════════════════════════════════
 kamera_frame = ctk.CTkFrame(tab_container, fg_color="#000000", corner_radius=0)
-kamera_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["kamera"] = kamera_frame
 
 cam_hdr = ctk.CTkFrame(kamera_frame, height=38, fg_color="#04080f", corner_radius=0)
@@ -1363,7 +1363,6 @@ ctk.CTkLabel(cam_overlay, textvariable=SV["as"], font=ctk.CTkFont(family="Consol
 #  YARIŞMA SEKMESİ — TEKNOFEST Panel
 # ══════════════════════════════════════════════════════════════
 yarisma_frame = ctk.CTkFrame(tab_container, fg_color="#020810", corner_radius=0)
-yarisma_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["yarisma"] = yarisma_frame
 
 _YARISMA_PARENT = yarisma_frame   
