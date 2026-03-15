@@ -531,19 +531,18 @@ def sekme_ac(ad):
         if k == ad: b.configure(fg_color="#1e3a5f", text_color="#00ffcc")
         else: b.configure(fg_color="transparent", text_color="#64748b")
         
-    # Eğer sekme pop-out penceresindeyse ana ekranda göstermeye çalışma
     if ad in _popout_windows and _popout_windows[ad].winfo_exists():
         return
         
     f = sekme_frames.get(ad)
     if f: 
-        f.tkraise() # SIFIR GECİKME: Çerçeve zaten var, sadece z-index ile en öne al
+        f.tkraise() 
 
 _popout_windows = {}   
 _kamera_labels = [] 
 
 def pop_out(ad, title):
-    """Sekmeyi tamamen yeni bir pencereye taşır ve ana ekranı boş bırakmaz."""
+    """Sekmeyi tamamen yeni bir pencereye taşır (Yeniden İnşa Ederek TclError'u Önler)."""
     if ad in _popout_windows and _popout_windows[ad].winfo_exists():
         _popout_windows[ad].lift(); return
 
@@ -556,22 +555,36 @@ def pop_out(ad, title):
     win.configure(bg="#020810")
     _popout_windows[ad] = win
 
-    f.grid_forget() # Ana grid'den çıkar
-    f.pack(in_=win, fill="both", expand=True) # Toplevel içine yerleştir
+    if ad == "kamera":
+        lbl_kamera_pop = tk.Label(win, bg="#000000")
+        lbl_kamera_pop.pack(fill="both", expand=True)
+        _kamera_labels.append(lbl_kamera_pop)
+        
+        def on_close_kamera():
+            if lbl_kamera_pop in _kamera_labels: _kamera_labels.remove(lbl_kamera_pop)
+            win.destroy()
+            _popout_windows.pop(ad, None)
+            if aktif_sekme[0] == ad: sekme_ac(ad)
+        win.protocol("WM_DELETE_WINDOW", on_close_kamera)
+        
+    elif ad == "yarisma":
+        # --- KUSURSUZ AKTARIM MANTIĞI: ESKİ DÖNGÜYÜ DURDUR, YENİDEN İNŞA ET ---
+        f._panel_active = False # Eski sekmedeki güncelleme döngüsünü öldür
+        for w in f.winfo_children(): w.destroy() # Arayüzü temizle
+        
+        _build_panel(win) # Toplevel içine tamamen sıfırdan kur
+        
+        def on_close_yarisma():
+            win._panel_active = False # Toplevel döngüsünü öldür
+            win.destroy()
+            _popout_windows.pop(ad, None)
+            _build_panel(f) # Ana sekmeye geri kur
+            if aktif_sekme[0] == ad: sekme_ac(ad)
+        win.protocol("WM_DELETE_WINDOW", on_close_yarisma)
 
-    # Ekranda o an bu sekme açıktıysa, YKİ ana sekmesine geri dön ki ekran siyah kalmasın
+    # Pop-out açıldığında ana ekran boş kalmasın diye YKİ sekmesini öne getir
     if aktif_sekme[0] == ad:
         sekme_ac("yki")
-
-    def on_close():
-        f.pack_forget() # Pop-out pencereden sök
-        win.destroy()
-        _popout_windows.pop(ad, None)
-        # Ana grid'e (katmanların arasına) geri yerleştir
-        f.grid(in_=tab_container, row=0, column=0, sticky="nsew")
-        if aktif_sekme[0] == ad:
-            f.tkraise()
-    win.protocol("WM_DELETE_WINDOW", on_close)
 
 # ── Üst Bar ───────────────────────────────────────────────────
 top = ctk.CTkFrame(app, height=52, fg_color="#04080f", corner_radius=0)
@@ -608,7 +621,7 @@ tab_container.pack(fill="both", expand=True)
 tab_container.grid_rowconfigure(0, weight=1)
 tab_container.grid_columnconfigure(0, weight=1)
 
-# 1. YKİ SEKMESİ (Aynı gride ekle)
+# 1. YKİ SEKMESİ
 yki_frame = ctk.CTkFrame(tab_container, fg_color="transparent")
 yki_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["yki"] = yki_frame
@@ -829,8 +842,12 @@ div(c3); data_row(c3, "Pusula", SV["hdg"], lcolor="#14B8A6")
 ctk.CTkFrame(c3, height=4, fg_color="transparent").pack()
 
 c4 = section(right, "▸  KONUM & SİSTEM", "#10B981", 3)
+mf = ctk.CTkFrame(c4, fg_color="transparent"); mf.pack(fill="x", padx=16, pady=6)
+ctk.CTkLabel(mf, text="UÇUŞ MODU", font=FL, text_color="#34d399", width=120, anchor="w").pack(side="left")
+ctk.CTkLabel(mf, textvariable=SV["mode"], font=ctk.CTkFont(family="Courier New", size=18, weight="bold"), text_color="#10B981").pack(side="right", padx=6)
 div(c4); data_row(c4, "Enlem", SV["lat"], lcolor="#f43f5e", vsize=16)
 data_row(c4, "Boylam", SV["lon"], lcolor="#f43f5e", vsize=16); div(c4)
+
 bf = ctk.CTkFrame(c4, fg_color="transparent"); bf.pack(fill="x", padx=16, pady=6)
 sf = ctk.CTkFrame(bf, fg_color="#042f2e", corner_radius=6, border_width=1, border_color="#134e4a")
 sf.pack(side="left", expand=True, fill="x", padx=(0,4))
@@ -1080,6 +1097,8 @@ def master_loop():
 def _build_panel(pwin=None):
     if pwin is None: pwin = _YARISMA_PARENT   
     
+    pwin._panel_active = True # --- KUSURSUZ MİMARİ: Panel döngüsü kontrol bayrağı ---
+    
     pFB = ctk.CTkFont(family="Consolas", size=18, weight="bold")
     pFK = ctk.CTkFont(family="Consolas", size=13, weight="bold")
     pFL = ctk.CTkFont(family="Consolas", size=13)
@@ -1137,7 +1156,10 @@ def _build_panel(pwin=None):
     kadi_e = ctk.CTkEntry(cg, font=pFL, fg_color="#050d1a", border_color="#1e3a5f", text_color="#fff", height=28, placeholder_text="takimkadi"); kadi_e.pack(fill="x", padx=12, pady=2)
     ctk.CTkLabel(cg, text="Şifre:", font=pFL, text_color="#94a3b8", anchor="w").pack(padx=12, anchor="w")
     sifre_e = ctk.CTkEntry(cg, font=pFL, fg_color="#050d1a", border_color="#1e3a5f", text_color="#fff", height=28, show="●", placeholder_text="şifre"); sifre_e.pack(fill="x", padx=12, pady=2)
-    lbl_giris = ctk.CTkLabel(cg, text="⬤  Giriş yapılmadı", font=pFU, text_color="#64748b"); lbl_giris.pack(pady=3)
+    
+    g_text = f"✓  Takım #{TAKIM_NO[0]}" if TAKIM_NO[0] > 0 else "⬤  Giriş yapılmadı"
+    g_color = "#10B981" if TAKIM_NO[0] > 0 else "#64748b"
+    lbl_giris = ctk.CTkLabel(cg, text=g_text, font=pFU, text_color=g_color); lbl_giris.pack(pady=3)
 
     def giris():
         def _g():
@@ -1184,7 +1206,11 @@ def _build_panel(pwin=None):
 
     thdr = ctk.CTkFrame(pmid, fg_color="transparent"); thdr.grid(row=0,column=0,padx=12,pady=(10,4),sticky="ew")
     ctk.CTkLabel(thdr, text="📡  GÖNDERİLEN TELEMETRİ", font=pFK, text_color="#38BDF8").pack(side="left")
-    lbl_hz = ctk.CTkLabel(thdr, text="● DURDURULDU", font=pFU, text_color="#64748b"); lbl_hz.pack(side="right", padx=6)
+    
+    is_tel = telemetri_aktif[0]
+    hz_t = "● GÖNDERİLİYOR 1 Hz" if is_tel else "● DURDURULDU"
+    hz_c = "#10B981" if is_tel else "#64748b"
+    lbl_hz = ctk.CTkLabel(thdr, text=hz_t, font=pFU, text_color=hz_c); lbl_hz.pack(side="right", padx=6)
 
     def toggle_tel():
         telemetri_aktif[0] = not telemetri_aktif[0]
@@ -1195,7 +1221,11 @@ def _build_panel(pwin=None):
             btn_tel.configure(text="▶ Başlat", fg_color="#064E3B", hover_color="#059669")
             lbl_hz.configure(text="● DURDURULDU", text_color="#64748b"); plog("Telemetri durdu")
 
-    btn_tel = ctk.CTkButton(thdr, text="▶ Başlat", font=pFU, height=28, width=110, fg_color="#064E3B", hover_color="#059669", command=toggle_tel)
+    btn_t = "⏹ Durdur" if is_tel else "▶ Başlat"
+    btn_f = "#7c2d12" if is_tel else "#064E3B"
+    btn_h = "#b91c1c" if is_tel else "#059669"
+    btn_tel = ctk.CTkButton(thdr, text=btn_t, font=pFU, height=28, width=110, 
+                            fg_color=btn_f, hover_color=btn_h, command=toggle_tel)
     btn_tel.pack(side="right", padx=4)
 
     tbox = ctk.CTkScrollableFrame(pmid, fg_color="#030810", scrollbar_button_color="#1e3a5f", scrollbar_fg_color="#030810")
@@ -1315,7 +1345,8 @@ def _build_panel(pwin=None):
     log_tb.grid(row=10, column=0, padx=10, pady=(0,8), sticky="ew"); log_tb.configure(state="disabled")
 
     def _panel_update():
-        if not pwin.winfo_exists(): return 
+        # Güvenlik Kontrolü: Pencere kapandıysa döngüyü sessizce durdur. TclError'u kökünden engeller.
+        if not pwin.winfo_exists() or not getattr(pwin, "_panel_active", True): return 
         
         lbl_p_lat.configure(text=f"{D.get('lat',0.0):.5f} °")
         lbl_p_lon.configure(text=f"{D.get('lon',0.0):.5f} °")
@@ -1351,7 +1382,7 @@ def _build_panel(pwin=None):
 #  KAMERA SEKMESİ — Tam Ekran FPV
 # ══════════════════════════════════════════════════════════════
 kamera_frame = ctk.CTkFrame(tab_container, fg_color="#000000", corner_radius=0)
-kamera_frame.grid(row=0, column=0, sticky="nsew") # BURASI DEĞİŞTİ - GRIDE EKLENDİ
+kamera_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["kamera"] = kamera_frame
 
 cam_hdr = ctk.CTkFrame(kamera_frame, height=38, fg_color="#04080f", corner_radius=0)
@@ -1372,7 +1403,7 @@ ctk.CTkLabel(cam_overlay, textvariable=SV["as"], font=ctk.CTkFont(family="Consol
 #  YARIŞMA SEKMESİ — TEKNOFEST Panel
 # ══════════════════════════════════════════════════════════════
 yarisma_frame = ctk.CTkFrame(tab_container, fg_color="#020810", corner_radius=0)
-yarisma_frame.grid(row=0, column=0, sticky="nsew") # BURASI DEĞİŞTİ - GRIDE EKLENDİ
+yarisma_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["yarisma"] = yarisma_frame
 
 _YARISMA_PARENT = yarisma_frame   
