@@ -597,10 +597,8 @@ _popout_windows = {}
 
 def pop_out(ad, title):
     """
-    Sekme içeriğini ayrı pencerede göster.
-    place() sisteminde: frame tab_container'da zaten render edili.
-    Ayrı pencere açılınca frame place() ile o pencereye yönlendirilir.
-    Kapanınca tab_container'a geri döner.
+    Sekme frame'ini ayrı Toplevel'e taşır.
+    place(in_=win) ile frame içeriği doğrudan yeni pencerede görünür.
     """
     if ad in _popout_windows and _popout_windows[ad].winfo_exists():
         _popout_windows[ad].lift(); return
@@ -612,21 +610,34 @@ def pop_out(ad, title):
     win.title(f"⤢  {title}")
     win.geometry("1400x860")
     win.configure(bg="#020810")
+    win.grid_rowconfigure(0, weight=1)
+    win.grid_columnconfigure(0, weight=1)
     _popout_windows[ad] = win
 
-    # Frame'i ayrı pencereye place et (parent değişmez, yer değişir)
+    # Frame'i yeni pencereye place et
     f.place_forget()
     f.place(in_=win, relx=0, rely=0, relwidth=1, relheight=1)
     f.lift()
 
+    # Pencere boyutlandıktan sonra içeriği güncelle
+    def _after_show():
+        win.update_idletasks()
+        f.update_idletasks()
+
+    win.after(100, _after_show)
+
     def on_close():
         win.destroy()
         _popout_windows.pop(ad, None)
-        # Frame'i tab_container'a geri taşı
+        # Ana container'a geri taşı
         f.place_forget()
         f.place(in_=tab_container, relx=0, rely=0, relwidth=1, relheight=1)
         if aktif_sekme[0] == ad:
             f.lift()
+        else:
+            # Aktif sekmeyi öne getir
+            af = sekme_frames.get(aktif_sekme[0])
+            if af: af.lift()
     win.protocol("WM_DELETE_WINDOW", on_close)
 
 # ── Üst Bar ───────────────────────────────────────────────────
@@ -1205,36 +1216,36 @@ def master_loop():
     global SMOOTH_HEADING, SMOOTH_UI_ROLL, SMOOTH_UI_PITCH
     
     if EKSTRA_MODULLER_OK:
+        _mk = None
         with KAMERA_KILIDI:
             if SON_KAMERA_KARESI is not None:
-                _kare = SON_KAMERA_KARESI; SON_KAMERA_KARESI = None
-        if EKSTRA_MODULLER_OK and '_kare' in dir() and _kare is not None:
-            _pil = Image.fromarray(_kare)
-            # Sol panel kamera (küçük)
-            imgtk = ImageTk.PhotoImage(image=_pil)
-            lbl_kamera.imgtk = imgtk; lbl_kamera.configure(image=imgtk)
-            # Tam ekran kamera sekmesi
+                _mk = SON_KAMERA_KARESI; SON_KAMERA_KARESI = None
+        if _mk is not None:
+            _pil = Image.fromarray(_mk)
+            # Sol panel (küçük) — HER ZAMAN güncelle
+            _ikt = ImageTk.PhotoImage(image=_pil)
+            lbl_kamera.imgtk = _ikt; lbl_kamera.configure(image=_ikt)
+            # Tam ekran — HER ZAMAN güncelle (sekme veya popup fark etmez)
             try:
-                # Sadece kamera sekmesi aktifse tam ekranı güncelle (CPU tasarrufu)
-                if aktif_sekme[0] == "kamera" or "kamera" in _popout_windows:
-                    fw = max(lbl_kamera_fs.winfo_width(), 1)
-                    fh = max(lbl_kamera_fs.winfo_height(), 1)
-                    if fw > 10 and fh > 10:
-                        _pil_fs = _pil.resize((fw, fh), Image.NEAREST)
-                        imgtk_fs = ImageTk.PhotoImage(image=_pil_fs)
-                        lbl_kamera_fs.imgtk_fs = imgtk_fs
-                        lbl_kamera_fs.configure(image=imgtk_fs)
-            except: pass
-            _kare = None 
+                fw = lbl_kamera_fs.winfo_width()
+                fh = lbl_kamera_fs.winfo_height()
+                if fw > 20 and fh > 20:
+                    _pil_fs = _pil.resize((fw, fh), Image.NEAREST)
+                    _ikt_fs = ImageTk.PhotoImage(image=_pil_fs)
+                    lbl_kamera_fs.imgtk = _ikt_fs
+                    lbl_kamera_fs.configure(image=_ikt_fs)
+            except: pass 
 
     if OPENGL_OK:
+        _hk = None
         with HUD_KILIDI:
             if SON_HUD_KARESI is not None:
-                kare = SON_HUD_KARESI; SON_HUD_KARESI = None
-                lw = max(lbl_hud.winfo_width(), 1); lh = max(lbl_hud.winfo_height(), 1)
-                img_r = kare if (lw == HUD_W and lh == HUD_H) else kare.resize((lw, lh), Image.BILINEAR)
-                imgtk = ImageTk.PhotoImage(image=img_r)
-                lbl_hud.imgtk = imgtk; lbl_hud.configure(image=imgtk)
+                _hk = SON_HUD_KARESI; SON_HUD_KARESI = None
+        if _hk is not None:
+            lw = max(lbl_hud.winfo_width(), 1); lh = max(lbl_hud.winfo_height(), 1)
+            _ir = _hk if (lw == HUD_W and lh == HUD_H) else _hk.resize((lw, lh), Image.BILINEAR)
+            _it = ImageTk.PhotoImage(image=_ir)
+            lbl_hud.imgtk = _it; lbl_hud.configure(image=_it)
 
     # Gauge render kaldırıldı - 3D model tüm HUD alanını kullanıyor
 
@@ -1683,10 +1694,17 @@ _YARISMA_PARENT = yarisma_frame   # build_panel bunu kullanacak
 # ── Panel penceresini aç ──────────────────────────────────────
 _build_panel()
 
-# ── Başlangıç sekmesini aç ────────────────────────────────────
-app.after(100, lambda: sekme_ac("yki"))
+# ── Başlangıç: tüm sekmeler zaten place() ile render edildi ──
+# Sadece YKİ'yi öne getir, diğerleri arka planda hazır
+def _init_tabs():
+    # Tüm sekmeleri oluşturmak için update idletasks çalıştır
+    app.update_idletasks()
+    # YKİ'yi öne getir
+    sekme_ac("yki")
+
+app.after(150, _init_tabs)
 
 # Sistemleri Başlat
-app.after(150, telemetry_ui_loop)
-app.after(250, master_loop)
+app.after(200, telemetry_ui_loop)
+app.after(300, master_loop)
 app.mainloop()
