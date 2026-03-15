@@ -303,30 +303,36 @@ def _hud_arka_plan():
                 yaw_vis, yaw_vel = rk4(yaw_vis, yaw_vel,
                                        coordinated_yaw, YAW_OMEGA, YAW_ZETA, dt)
 
-                # ── Chase-Cam Render (kuyruk arkası bakış açısı) ─────────
+                # ── Chase-Cam Render ─────────────────────────────────────
+                # Mimari:
+                #   gluLookAt: kamera modelin ARKASINDA ve hafif yukarısında
+                #   Model kendi ekseni etrafında döner (attitude)
+                #   Kamera sabit → İHA sanki havada kendi hareket ediyor gibi
+                #
+                # gluLookAt parametreleri:
+                #   eye   (0, 0.5, 4.5)  → kuyruğun 4.5 birim gerisinde, 0.5 yukarı
+                #   at    (0, 0.1, 0)    → model merkezine bak, hafif yukarı
+                #   up    (0, 1, 0)      → ufuk düzgün durur
                 glViewport(0, 0, HUD_W, HUD_H)
                 glClearColor(0.02, 0.04, 0.10, 1.0)
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
                 glMatrixMode(GL_PROJECTION); glLoadIdentity()
-                # FOV 55° → daha geniş, kanatlar rahat sığar
-                gluPerspective(55, HUD_W / HUD_H, 0.3, 200.0)
+                gluPerspective(52, HUD_W / HUD_H, 0.3, 200.0)
                 glMatrixMode(GL_MODELVIEW); glLoadIdentity()
 
-                # Kamera: kuyruğun hemen gerisinde, hafif yukarıdan
-                #   Z=-3.2 → ne çok yakın ne çok uzak
-                #   Y=-0.18 → kamera modelin biraz altında → ufuk hizası doğal
-                glTranslatef(0.0, -0.18, -3.2)
+                # Kamera: model arkasında, sabit chase-cam pozisyonu
+                gluLookAt(
+                    0.0,  0.5,  4.5,   # eye: kuyruğun hemen gerisinde & yukarısında
+                    0.0,  0.1,  0.0,   # at:  model merkezi (hafif yukarı)
+                    0.0,  1.0,  0.0    # up:  Y ekseni yukarı
+                )
 
-                # 180° Y ekseni → modeli bize kuyruğunu döndür
-                glRotatef(180.0, 0, 1, 0)
-
-                # Uçuş dinamiği (180° Y flip sonrası işaret düzeltmeleri):
-                #   Yaw:   -yaw_vis  (Y ekseni ters döndüğünden)
-                #   Pitch: -pitch_pos (X ekseni ters döndüğünden)
-                #   Roll:  +roll_pos  (Z ekseni aynı, ama görsel olarak doğru)
-                glRotatef(math.degrees(-yaw_vis),    0, 1, 0)
-                glRotatef(math.degrees(-pitch_pos),  1, 0, 0)
-                glRotatef(math.degrees( roll_pos),   0, 0, 1)
+                # İHA attitude dönüşleri — model kendi merkezinde döner
+                # Gerçek uçuş sırası: Yaw → Pitch → Roll
+                # Roll işareti: +roll_pos → sağ kanat aşağı (arkadan bakışta doğal)
+                glRotatef(math.degrees( yaw_vis),    0, 1, 0)   # yaw
+                glRotatef(math.degrees( pitch_pos),  1, 0, 0)   # pitch nose up = pozitif
+                glRotatef(math.degrees(-roll_pos),   0, 0, 1)   # roll sağ = sağ kanat aşağı
 
                 glEnable(GL_LIGHTING)
                 glColor3f(1, 1, 1)
