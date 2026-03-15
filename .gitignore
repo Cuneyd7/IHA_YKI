@@ -1,0 +1,7 @@
+*.STL
+*.obj
+.tmp.driveupload/
+*.tmpvenv/
+env/
+__pycache__/
+*.mp4
