@@ -391,7 +391,7 @@ def ucak_ikon_onbellegi_olustur(base_img):
 
 if EKSTRA_MODULLER_OK:
     UCAK_BASE_IMG   = ucak_base_ciz()   
-    UCAK_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_BASE_IMG)                
+    UCAK_IKON_CACHE = {} # BURADA SADECE BOŞ TANIMLIYORUZ, UYGULAMA AÇILINCA DOLDURACAĞIZ              
     UCAK_TK_IMG     = None
     ucak_marker     = None
 
@@ -499,6 +499,10 @@ app = ctk.CTk()
 app.geometry("1600x900")
 app.title("KARAN İHA-YKİ")
 app.configure(bg="#02050e")
+
+# --- HATA ÇÖZÜMÜ: ANA PENCERE OLUŞTUKTAN SONRA ÖNBELLEĞİ DOLDURUYORUZ ---
+if EKSTRA_MODULLER_OK and UCAK_BASE_IMG is not None:
+    UCAK_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_BASE_IMG)
 
 SV = {
     "roll": tk.StringVar(value="--- °"), "pitch": tk.StringVar(value="--- °"), "yaw": tk.StringVar(value="--- °"),
