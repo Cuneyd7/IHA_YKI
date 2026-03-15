@@ -1330,55 +1330,58 @@ def master_loop():
 # ══════════════════════════════════════════════════════════════
 def _build_panel():
     """İkinci ekran: TEKNOFEST yarışma sunucusu paneli."""
-    pwin = _YARISMA_PARENT   # Ayrı pencere değil, sekme frame'i
+    pwin = _YARISMA_PARENT   # tk.Frame (yarisma_frame)
 
-    pFB = ctk.CTkFont(family="Consolas", size=18, weight="bold")
-    pFK = ctk.CTkFont(family="Consolas", size=13, weight="bold")
-    pFL = ctk.CTkFont(family="Consolas", size=13)
-    pFU = ctk.CTkFont(family="Consolas", size=11, weight="bold")
-    pFS = ctk.CTkFont(family="Consolas", size=11)
+    pFB = ("Consolas", 17, "bold")
+    pFK = ("Consolas", 13, "bold")
+    pFL = ("Consolas", 13)
+    pFU = ("Consolas", 11, "bold")
+    pFS = ("Consolas", 11)
 
-    # Başlık
-    ptop = ctk.CTkFrame(pwin, height=44, fg_color="#03070f", corner_radius=0)
-    ptop.pack(fill="x")
-    ctk.CTkLabel(ptop, text="⬡  TEKNOFEST 2026  —  SAVAŞAN İHA YARIŞMASI SUNUCU PANELİ  ⬡",
-                 font=pFB, text_color="#00e5ff").pack(pady=8)
+    # CTkFont → tuple (tk uyumlu, redraw tetiklemiyor)
+    def _ctk_font(family="Consolas", size=13, weight="normal"):
+        return ctk.CTkFont(family=family, size=size, weight=weight)
 
-    pmain = ctk.CTkFrame(pwin, fg_color="transparent")
+    # Başlık — tk.Frame (CTkFrame canvas redraw'u yok)
+    ptop = tk.Frame(pwin, height=44, bg="#03070f")
+    ptop.pack(fill="x"); ptop.pack_propagate(False)
+    tk.Label(ptop, text="⬡  TEKNOFEST 2026  —  SAVAŞAN İHA YARIŞMASI SUNUCU PANELİ  ⬡",
+             font=pFB, fg="#00e5ff", bg="#03070f").pack(pady=8)
+
+    pmain = tk.Frame(pwin, bg="#020810")
     pmain.pack(fill="both", expand=True, padx=10, pady=8)
     pmain.grid_columnconfigure(0, weight=0, minsize=320)
     pmain.grid_columnconfigure(1, weight=1)
     pmain.grid_columnconfigure(2, weight=0, minsize=320)
     pmain.grid_rowconfigure(0, weight=1)
 
+    _PCARD_COLORS = {
+        "#38BDF8":("#1E3A8A","#172554"), "#10B981":("#064E3B","#022C22"),
+        "#f97316":("#7c2d12","#431407"), "#a78bfa":("#4c1d95","#2e1065"),
+        "#f43f5e":("#881337","#4c0519"), "#facc15":("#713f12","#422006"),
+    }
     def pcard(parent, title, color, row):
-        bc = {"#38BDF8":"#1E3A8A","#10B981":"#064E3B","#f97316":"#7c2d12",
-              "#a78bfa":"#4c1d95","#f43f5e":"#881337","#facc15":"#713f12"}.get(color,"#1e3a5f")
-        hc = {"#38BDF8":"#172554","#10B981":"#022C22","#f97316":"#431407",
-              "#a78bfa":"#2e1065","#f43f5e":"#4c0519","#facc15":"#422006"}.get(color,"#0d1829")
-        c = ctk.CTkFrame(parent, corner_radius=10, fg_color="#0a1628", border_width=1, border_color=bc)
+        bc, hc = _PCARD_COLORS.get(color, ("#1e3a5f","#0d1829"))
+        c = tk.Frame(parent, bg="#0a1628", highlightbackground=bc, highlightthickness=1)
         c.grid(row=row, column=0, padx=10, pady=5, sticky="ew")
-        h = ctk.CTkFrame(c, height=26, corner_radius=6, fg_color=hc)
-        h.pack(fill="x", padx=3, pady=(3,0))
-        ctk.CTkLabel(h, text=f"  {title}", font=pFK, text_color=color, anchor="w").pack(side="left", padx=6, pady=3)
+        h = tk.Frame(c, bg=hc, height=26); h.pack(fill="x", padx=2, pady=(2,0)); h.pack_propagate(False)
+        tk.Label(h, text=f"  {title}", font=pFK, fg=color, bg=hc, anchor="w").pack(side="left", padx=6, pady=3)
         return c
 
     def prow2(parent, lbl):
-        f = ctk.CTkFrame(parent, fg_color="transparent"); f.pack(fill="x", padx=12, pady=2)
-        ctk.CTkLabel(f, text=lbl, font=pFL, text_color="#94a3b8", anchor="w").pack(side="left")
-        v = ctk.CTkLabel(f, text="---", font=ctk.CTkFont(family="Consolas",size=13,weight="bold"),
-                         text_color="#00ffcc", anchor="e"); v.pack(side="right")
+        f = tk.Frame(parent, bg="#0a1628"); f.pack(fill="x", padx=12, pady=2)
+        tk.Label(f, text=lbl, font=pFL, fg="#94a3b8", bg="#0a1628", anchor="w").pack(side="left")
+        v = tk.Label(f, text="---", font=pFK, fg="#00ffcc", bg="#0a1628", anchor="e"); v.pack(side="right")
         return v
 
     def psep(p):
-        ctk.CTkFrame(p, height=1, fg_color="#1e3a5f").pack(fill="x", padx=10, pady=2)
+        tk.Frame(p, height=1, bg="#1e3a5f").pack(fill="x", padx=10, pady=2)
     def pgrid_sep(parent, row):
-        ctk.CTkFrame(parent, height=1, fg_color="#1e3a5f").grid(
-            row=row, column=0, padx=10, pady=3, sticky="ew")
+        tk.Frame(parent, height=1, bg="#1e3a5f").grid(row=row, column=0, padx=10, pady=3, sticky="ew")
 
     # ── SOL PANEL ─────────────────────────────────────────────
-    pleft = ctk.CTkFrame(pmain, corner_radius=12, fg_color="#070f1e",
-                         border_width=1, border_color="#1e3a5f")
+    pleft = tk.Frame(pmain, bg="#070f1e",
+                     highlightbackground="#1e3a5f", highlightthickness=1)
     pleft.grid(row=0, column=0, padx=(0,6), sticky="nsew")
     pleft.grid_columnconfigure(0, weight=1)
 
@@ -1471,8 +1474,8 @@ def _build_panel():
     ctk.CTkFrame(cm, height=4, fg_color="transparent").pack()
 
     # ── ORTA PANEL ────────────────────────────────────────────
-    pmid = ctk.CTkFrame(pmain, corner_radius=12, fg_color="#070f1e",
-                        border_width=1, border_color="#1e3a5f")
+    pmid = tk.Frame(pmain, bg="#070f1e",
+                    highlightbackground="#1e3a5f", highlightthickness=1)
     pmid.grid(row=0, column=1, padx=(0,6), sticky="nsew")
     pmid.grid_rowconfigure(1, weight=1); pmid.grid_columnconfigure(0, weight=1)
 
@@ -1496,38 +1499,55 @@ def _build_panel():
     btn_tel.pack(side="right", padx=4)
 
     # Telemetri alanları grid
-    tbox = ctk.CTkScrollableFrame(pmid, fg_color="#030810",
-                                   scrollbar_button_color="#1e3a5f", scrollbar_fg_color="#030810")
-    tbox.grid(row=1, column=0, padx=10, pady=(0,6), sticky="nsew")
+    # tk.Canvas scroll — CTkScrollableFrame redraw yok
+    _tbox_outer = tk.Frame(pmid, bg="#030810"); _tbox_outer.grid(row=1, column=0, padx=10, pady=(0,6), sticky="nsew")
+    _tbox_outer.grid_rowconfigure(0, weight=1); _tbox_outer.grid_columnconfigure(0, weight=1)
+    _tbox_cv = tk.Canvas(_tbox_outer, bg="#030810", highlightthickness=0, bd=0)
+    _tbox_cv.grid(row=0, column=0, sticky="nsew")
+    _tbox_vsb = tk.Scrollbar(_tbox_outer, orient="vertical", command=_tbox_cv.yview, width=5,
+                              bg="#050d1a", troughcolor="#050d1a", relief="flat")
+    _tbox_vsb.grid(row=0, column=1, sticky="ns")
+    _tbox_cv.configure(yscrollcommand=_tbox_vsb.set)
+    tbox = tk.Frame(_tbox_cv, bg="#030810")
     tbox.grid_columnconfigure(0, weight=1); tbox.grid_columnconfigure(1, weight=1)
+    _tbox_win = _tbox_cv.create_window((0,0), window=tbox, anchor="nw")
+    tbox.bind("<Configure>", lambda e: _tbox_cv.configure(scrollregion=_tbox_cv.bbox("all")))
+    _tbox_cv.bind("<Configure>", lambda e: _tbox_cv.itemconfig(_tbox_win, width=e.width))
+    for _w in (_tbox_cv, tbox): _w.bind("<MouseWheel>", lambda e: _tbox_cv.yview_scroll(-int(e.delta/60),"units"))
 
-    PSV = {k: tk.StringVar(value="---") for k in [
-        "enlem","boylam","irtifa","dikilme","yonelme","yatis",
-        "hiz","batarya","otonom","gps_s","http_kod","takim"
-    ]}
+    PSV_LBL = {}   # key → tk.Label (direkt config, StringVar yok)
 
-    def ptf(row, col, label, sv, color="#00ffcc"):
-        f = ctk.CTkFrame(tbox, fg_color="#050d1a", corner_radius=8, border_width=1, border_color="#0f2a4a")
+    def ptf(row, col, label, key, color="#00ffcc"):
+        f = tk.Frame(tbox, bg="#050d1a", highlightbackground="#0f2a4a", highlightthickness=1)
         f.grid(row=row, column=col, padx=5, pady=4, sticky="ew")
-        ctk.CTkLabel(f, text=label, font=pFU, text_color="#64748b", anchor="w").pack(anchor="w", padx=10, pady=(5,0))
-        ctk.CTkLabel(f, textvariable=sv, font=ctk.CTkFont(family="Consolas",size=16,weight="bold"),
-                     text_color=color, anchor="e").pack(anchor="e", padx=10, pady=(0,5))
+        tk.Label(f, text=label, font=pFU, fg="#64748b", bg="#050d1a", anchor="w").pack(anchor="w", padx=10, pady=(5,0))
+        v = tk.Label(f, text="---", font=("Consolas",15,"bold"), fg=color, bg="#050d1a", anchor="e")
+        v.pack(anchor="e", padx=10, pady=(0,5))
+        PSV_LBL[key] = v
 
-    ptf(0,0,"İHA ENLEM",   PSV["enlem"],   "#38BDF8"); ptf(0,1,"İHA BOYLAM",  PSV["boylam"],  "#38BDF8")
-    ptf(1,0,"İRTİFA AGL",  PSV["irtifa"],  "#14B8A6"); ptf(1,1,"HEADING",     PSV["yonelme"], "#14B8A6")
-    ptf(2,0,"DİKİLME",     PSV["dikilme"], "#a78bfa"); ptf(2,1,"YATIŞ",       PSV["yatis"],   "#a78bfa")
-    ptf(3,0,"HIZ (m/s)",   PSV["hiz"],     "#10B981"); ptf(3,1,"BATARYA",     PSV["batarya"], "#10B981")
-    ptf(4,0,"OTONOM",      PSV["otonom"],  "#f97316"); ptf(4,1,"GPS SAATİ",   PSV["gps_s"],   "#facc15")
-    ptf(5,0,"HTTP KOD",    PSV["http_kod"],"#64748b"); ptf(5,1,"TAKIM NO",    PSV["takim"],   "#f43f5e")
+    ptf(0,0,"İHA ENLEM","enlem","#38BDF8"); ptf(0,1,"İHA BOYLAM","boylam","#38BDF8")
+    ptf(1,0,"İRTİFA AGL","irtifa","#14B8A6"); ptf(1,1,"HEADING","yonelme","#14B8A6")
+    ptf(2,0,"DİKİLME","dikilme","#a78bfa"); ptf(2,1,"YATIŞ","yatis","#a78bfa")
+    ptf(3,0,"HIZ (m/s)","hiz","#10B981"); ptf(3,1,"BATARYA","batarya","#10B981")
+    ptf(4,0,"OTONOM","otonom","#f97316"); ptf(4,1,"GPS SAATİ","gps_s","#facc15")
+    ptf(5,0,"HTTP KOD","http_kod","#64748b"); ptf(5,1,"TAKIM NO","takim","#f43f5e")
 
     ctk.CTkLabel(pmid, text="  👁  DİĞER TAKIMLAR", font=pFK, text_color="#f97316", anchor="w").grid(
         row=2,column=0,padx=12,pady=(6,2),sticky="w")
     pmid.grid_rowconfigure(3, weight=0)
 
-    diger_f = ctk.CTkScrollableFrame(pmid, height=190, fg_color="#030810",
-                                      scrollbar_button_color="#1e3a5f", scrollbar_fg_color="#030810")
-    diger_f.grid(row=3, column=0, padx=10, pady=(0,8), sticky="ew")
-    diger_f.grid_columnconfigure(0, weight=1)
+    _df_outer = tk.Frame(pmid, bg="#030810", height=190); _df_outer.grid(row=3, column=0, padx=10, pady=(0,8), sticky="ew")
+    _df_outer.grid_propagate(False); _df_outer.grid_rowconfigure(0, weight=1); _df_outer.grid_columnconfigure(0, weight=1)
+    _df_cv = tk.Canvas(_df_outer, bg="#030810", highlightthickness=0, bd=0)
+    _df_cv.grid(row=0, column=0, sticky="nsew")
+    _df_vsb = tk.Scrollbar(_df_outer, orient="vertical", command=_df_cv.yview, width=5,
+                            bg="#050d1a", troughcolor="#050d1a", relief="flat")
+    _df_vsb.grid(row=0, column=1, sticky="ns")
+    _df_cv.configure(yscrollcommand=_df_vsb.set)
+    diger_f = tk.Frame(_df_cv, bg="#030810"); diger_f.grid_columnconfigure(0, weight=1)
+    _df_win = _df_cv.create_window((0,0), window=diger_f, anchor="nw")
+    diger_f.bind("<Configure>", lambda e: _df_cv.configure(scrollregion=_df_cv.bbox("all")))
+    _df_cv.bind("<Configure>", lambda e: _df_cv.itemconfig(_df_win, width=e.width))
 
     def _diger_yaz(liste):
         for w in diger_f.winfo_children(): w.destroy()
@@ -1548,8 +1568,8 @@ def _build_panel():
                 ctk.CTkLabel(row_f, text=v, font=pFS, text_color="#cbd5e1", width=w, anchor="center").grid(row=0, column=c, padx=3, pady=2)
 
     # ── SAĞ PANEL ─────────────────────────────────────────────
-    pright = ctk.CTkFrame(pmain, corner_radius=12, fg_color="#070f1e",
-                          border_width=1, border_color="#1e3a5f")
+    pright = tk.Frame(pmain, bg="#070f1e",
+                      highlightbackground="#1e3a5f", highlightthickness=1)
     pright.grid(row=0, column=2, sticky="nsew")
     pright.grid_columnconfigure(0, weight=1)
 
@@ -1653,33 +1673,36 @@ def _build_panel():
 
     # ── Panel güncelleme döngüsü ──────────────────────────────
     def _panel_update():
-        lbl_p_lat.configure(text=f"{D.get('lat',0.0):.5f} °")
-        lbl_p_lon.configure(text=f"{D.get('lon',0.0):.5f} °")
-        lbl_p_alt.configure(text=f"{_agl_val[0]:.1f} m")
-        lbl_p_hdg.configure(text=f"{D.get('heading',0)} °")
-        lbl_p_mode.configure(text=D.get("mode","---"))
-        lbl_p_batt.configure(text=f"{D.get('batt_pct',0)} %")
-
-        PSV["enlem"].set(f"{D.get('lat',0.0):.6f}")
-        PSV["boylam"].set(f"{D.get('lon',0.0):.6f}")
-        PSV["irtifa"].set(f"{_agl_val[0]:.1f} m")
-        PSV["dikilme"].set(f"{math.degrees(D.get('pitch',0.0)):.1f} °")
-        PSV["yonelme"].set(f"{D.get('heading',0)} °")
-        PSV["yatis"].set(f"{math.degrees(D.get('roll',0.0)):.1f} °")
-        PSV["hiz"].set(f"{D.get('gs',0.0):.1f} m/s")
-        PSV["batarya"].set(f"{D.get('batt_pct',0)} %")
-        PSV["otonom"].set("1-OTONOM" if _otonom_mu() else "0-MANUEL")
-        PSV["gps_s"].set(f"{D['gps_saat']:02d}:{D['gps_dakika']:02d}:{D['gps_saniye']:02d}.{D['gps_ms']:03d}")
-        PSV["http_kod"].set(son_cevap_kodu[0])
-        PSV["takim"].set(f"# {TAKIM_NO[0]}" if TAKIM_NO[0] > 0 else "Giriş yap")
-
-        app.after(0, lambda: _diger_yaz(diger_takimlar[0]))
-
-        log_tb.configure(state="normal")
-        log_tb.delete("1.0","end")
-        log_tb.insert("end", "\n".join(_panel_log[-25:]))
-        log_tb.see("end"); log_tb.configure(state="disabled")
-
+        try:
+            lbl_p_lat.config(text=f"{D.get('lat',0.0):.5f} °")
+            lbl_p_lon.config(text=f"{D.get('lon',0.0):.5f} °")
+            lbl_p_alt.config(text=f"{_agl_val[0]:.1f} m")
+            lbl_p_hdg.config(text=f"{D.get('heading',0)} °")
+            lbl_p_mode.config(text=D.get("mode","---"))
+            lbl_p_batt.config(text=f"{D.get('batt_pct',0)} %")
+            # PSV_LBL — tk.Label direkt config
+            _pu_vals = [
+                ("enlem",   f"{D.get('lat',0.0):.6f}"),
+                ("boylam",  f"{D.get('lon',0.0):.6f}"),
+                ("irtifa",  f"{_agl_val[0]:.1f} m"),
+                ("dikilme", f"{math.degrees(D.get('pitch',0.0)):.1f} °"),
+                ("yonelme", f"{D.get('heading',0)} °"),
+                ("yatis",   f"{math.degrees(D.get('roll',0.0)):.1f} °"),
+                ("hiz",     f"{D.get('gs',0.0):.1f} m/s"),
+                ("batarya", f"{D.get('batt_pct',0)} %"),
+                ("otonom",  "1-OTONOM" if _otonom_mu() else "0-MANUEL"),
+                ("gps_s",   f"{D['gps_saat']:02d}:{D['gps_dakika']:02d}:{D['gps_saniye']:02d}.{D['gps_ms']:03d}"),
+                ("http_kod",son_cevap_kodu[0]),
+                ("takim",   f"# {TAKIM_NO[0]}" if TAKIM_NO[0] > 0 else "Giriş yap"),
+            ]
+            for k, v in _pu_vals:
+                if k in PSV_LBL: PSV_LBL[k].config(text=v)
+            _diger_yaz(diger_takimlar[0])
+            log_tb.config(state="normal")
+            log_tb.delete("1.0","end")
+            log_tb.insert("end", "\n".join(_panel_log[-25:]))
+            log_tb.see("end"); log_tb.config(state="disabled")
+        except Exception: pass
         app.after(500, _panel_update)
 
     app.after(600, _panel_update)
@@ -1727,9 +1750,13 @@ _build_panel()
 # ── Başlangıç: tüm sekmeler zaten place() ile render edildi ──
 # Sadece YKİ'yi öne getir, diğerleri arka planda hazır
 def _init_tabs():
-    # Tüm sekmeleri oluşturmak için update idletasks çalıştır
     app.update_idletasks()
-    # YKİ'yi öne getir
+    # Tüm sekmeleri sırayla öne getir → Tkinter render cache'ler
+    for _k in ["yarisma", "kamera", "yki"]:
+        f = sekme_frames.get(_k)
+        if f: f.tkraise()
+    app.update_idletasks()
+    # YKİ son — kullanıcı bunu görür
     sekme_ac("yki")
 
 app.after(150, _init_tabs)
