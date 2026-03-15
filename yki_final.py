@@ -550,9 +550,66 @@ if REQUESTS_OK:
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 app = ctk.CTk()
-app.geometry("1600x900")
+app.geometry("1600x52")    # Sadece nav bar yüksekliği
 app.title("KARAN İHA-YKİ")
-app.configure(bg="#02050e")
+app.configure(bg="#04080f")
+app.resizable(False, False)
+
+# İçerik pencereleri — her sekme kendi Toplevel'inde
+_TAB_WINS = {}      # ad → Toplevel
+_AKTIF_TAB = [None]
+
+def _tab_win_for(ad):
+    return _TAB_WINS.get(ad)
+
+def _get_content_geo():
+    """Nav bar'ın hemen altında, aynı genişlikte."""
+    app.update_idletasks()
+    x = app.winfo_x()
+    y = app.winfo_y() + app.winfo_height()
+    w = app.winfo_width()
+    h = 848   # toplam 900 - 52 nav
+    return f"{w}x{h}+{x}+{y}"
+
+def sekme_ac(ad):
+    """Anlık geçiş: withdraw + deiconify (OS backing store korunur)."""
+    if _AKTIF_TAB[0] == ad:
+        w = _TAB_WINS.get(ad)
+        if w: w.lift(); return
+    # Aktif pencereyi gizle
+    if _AKTIF_TAB[0] and _AKTIF_TAB[0] in _TAB_WINS:
+        _TAB_WINS[_AKTIF_TAB[0]].withdraw()
+    _AKTIF_TAB[0] = ad
+    # Hedef pencereyi göster
+    w = _TAB_WINS.get(ad)
+    if w:
+        w.geometry(_get_content_geo())
+        w.deiconify()
+        w.lift()
+    # Buton renklerini güncelle
+    for k, b in sekme_btnler.items():
+        b.configure(
+            fg_color="#1e3a5f" if k == ad else "transparent",
+            text_color="#00ffcc" if k == ad else "#64748b")
+
+def _make_tab_win(ad, bg="#020810"):
+    """Sekme için Toplevel oluştur, nav bar altına konumlandır."""
+    win = tk.Toplevel(app)
+    win.configure(bg=bg)
+    win.withdraw()   # Başlangıçta gizli
+    win.overrideredirect(False)
+    win.protocol("WM_DELETE_WINDOW", lambda: None)  # Kapatma yok
+    _TAB_WINS[ad] = win
+    # app taşınınca takip et
+    def _sync_pos(e=None):
+        if _AKTIF_TAB[0] == ad:
+            win.geometry(_get_content_geo())
+    app.bind("<Configure>", _sync_pos, add="+")
+    return win
+
+# sekme_frames: uyumluluk için — aslında Toplevel'lerin kendisi
+sekme_frames = {}
+def _sf_set(ad, win): sekme_frames[ad] = win
 
 # --- KUSURSUZ OPTİMİZASYON: C-TABANLI ASENKRON DEĞİŞKENLER ---
 SV = {
@@ -577,24 +634,13 @@ FU = ctk.CTkFont(family="Consolas", size=11, weight="bold")
 
 # ══ Sekme Sistemi ════════════════════════════════════════════
 # aktif_sekme: "yki" | "kamera" | "yarisma"
-aktif_sekme = [None]
+aktif_sekme = _AKTIF_TAB  # alias
 sekme_frames = {}   # sekme adı → CTkFrame
 sekme_btnler = {}   # sekme adı → CTkButton
 
-def sekme_ac(ad):
-    """Anlık sekme geçişi — tkraise() ile sıfır gecikme, sıfır redraw."""
-    aktif_sekme[0] = ad
-    for k, b in sekme_btnler.items():
-        b.configure(
-            fg_color="#1e3a5f" if k == ad else "transparent",
-            text_color="#00ffcc" if k == ad else "#64748b")
-    f = sekme_frames.get(ad)
-    if f:
-        f.tkraise()   # tk.Frame.tkraise() — CTkFrame'den ~10x hızlı
+# sekme_ac yukarıda tanımlandı (Toplevel versiyonu)
 
-_popout_windows = {}
-# Kamera popup'larındaki label listesi — master_loop bunların hepsini günceller
-cam_popup_labels = {}   # pencere_id → tk.Label
+cam_popup_labels = {}   # wid → tk.Label (popup kamera)
 
 def pop_out(ad, title):
     """
@@ -604,8 +650,9 @@ def pop_out(ad, title):
     - YKİ sekmesi: popup mesaj
     - Yarışma sekmesi: popup mesaj
     """
-    if ad in _popout_windows and _popout_windows[ad].winfo_exists():
-        _popout_windows[ad].lift(); return
+    # Kamera sekmesi popup — kendi penceresi var zaten
+    if ad != "kamera":
+        return  # YKİ ve yarışma zaten Toplevel'de çalışıyor
 
     win = tk.Toplevel(app)
     win.title(f"⤢  {title}")
@@ -703,22 +750,13 @@ for k, label in TAB_DEFS:
         corner_radius=6, height=32, width=36,
         command=lambda x=k, t=titles[k]: pop_out(x, t)).pack(side="left", padx=(0,6))
 
-# ── Ana sekme container — tkraise() ile sıfır gecikme ────────
-# tk.Frame kullan (ctk değil) → tkraise() anında çalışır
-# CTkFrame'de internal canvas redraw tetikleniyor, tk.Frame'de yok.
-tab_container = tk.Frame(app, bg="#020810")
-tab_container.pack(fill="both", expand=True)
+# ── Toplevel sekmeler ────────────────────────────────────────
+# YKİ sekmesi penceresi
+_yki_win = _make_tab_win("yki", "#020810")
+sekme_frames["yki"] = _yki_win
+yki_frame = _yki_win   # alias
 
-# Tüm sekme frame'leri aynı grid cell'ine yerleştirilir
-tab_container.grid_rowconfigure(0, weight=1)
-tab_container.grid_columnconfigure(0, weight=1)
-
-# YKİ sekmesi — tk.Frame (tkraise için)
-yki_frame = tk.Frame(tab_container, bg="#020810")
-yki_frame.grid(row=0, column=0, sticky="nsew")
-sekme_frames["yki"] = yki_frame
-
-main = ctk.CTkFrame(yki_frame, fg_color="transparent")
+main = ctk.CTkFrame(_yki_win, fg_color="transparent")
 main.pack(fill="both", expand=True, padx=15, pady=15)
 main.grid_columnconfigure(0, weight=0, minsize=480); main.grid_columnconfigure(1, weight=1); main.grid_columnconfigure(2, weight=0, minsize=380); main.grid_rowconfigure(0, weight=1)
 
@@ -1711,9 +1749,9 @@ def _build_panel():
 # ══════════════════════════════════════════════════════════════
 #  KAMERA SEKMESİ — Tam Ekran FPV
 # ══════════════════════════════════════════════════════════════
-kamera_frame = tk.Frame(tab_container, bg="#000000")
-kamera_frame.grid(row=0, column=0, sticky="nsew")
-sekme_frames["kamera"] = kamera_frame
+_kamera_win = _make_tab_win("kamera", "#000000")
+sekme_frames["kamera"] = _kamera_win
+kamera_frame = _kamera_win
 
 # Kamera başlık çubuğu (tk.Frame — tab_container ile uyumlu)
 cam_hdr = tk.Frame(kamera_frame, bg="#04080f", height=38)
@@ -1737,9 +1775,9 @@ for sv_key, col in [("lat","#38BDF8"),("lon","#38BDF8"),("alt","#14B8A6"),("as",
 # ══════════════════════════════════════════════════════════════
 #  YARIŞMA SEKMESİ — TEKNOFEST Panel
 # ══════════════════════════════════════════════════════════════
-yarisma_frame = tk.Frame(tab_container, bg="#020810")
-yarisma_frame.grid(row=0, column=0, sticky="nsew")
-sekme_frames["yarisma"] = yarisma_frame
+_yarisma_win = _make_tab_win("yarisma", "#020810")
+sekme_frames["yarisma"] = _yarisma_win
+yarisma_frame = _yarisma_win
 
 # _build_panel() bu frame'i dolduracak
 _YARISMA_PARENT = yarisma_frame   # build_panel bunu kullanacak
@@ -1750,16 +1788,23 @@ _build_panel()
 # ── Başlangıç: tüm sekmeler zaten place() ile render edildi ──
 # Sadece YKİ'yi öne getir, diğerleri arka planda hazır
 def _init_tabs():
+    """
+    Tüm Toplevel sekmeleri ilk kez render et → OS backing store hazırla.
+    Sonra YKİ'yi göster. Bundan sonra her geçiş <1ms.
+    """
     app.update_idletasks()
-    # Tüm sekmeleri sırayla öne getir → Tkinter render cache'ler
+    # Her Toplevel'i kısaca göster → backing store hazırlanır
     for _k in ["yarisma", "kamera", "yki"]:
-        f = sekme_frames.get(_k)
-        if f: f.tkraise()
-    app.update_idletasks()
-    # YKİ son — kullanıcı bunu görür
+        w = _TAB_WINS.get(_k)
+        if w:
+            w.geometry(_get_content_geo())
+            w.deiconify()
+            w.update_idletasks()
+            w.withdraw()
+    # YKİ'yi göster
     sekme_ac("yki")
 
-app.after(150, _init_tabs)
+app.after(200, _init_tabs)
 
 # Sistemleri Başlat
 app.after(200, telemetry_ui_loop)
