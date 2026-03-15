@@ -582,63 +582,90 @@ sekme_frames = {}   # sekme adı → CTkFrame
 sekme_btnler = {}   # sekme adı → CTkButton
 
 def sekme_ac(ad):
-    """Aktif sekmeyi anlık değiştirir — lift() ile sıfır gecikme."""
+    """Anlık sekme geçişi — tkraise() ile sıfır gecikme, sıfır redraw."""
     aktif_sekme[0] = ad
     for k, b in sekme_btnler.items():
         b.configure(
             fg_color="#1e3a5f" if k == ad else "transparent",
             text_color="#00ffcc" if k == ad else "#64748b")
-    # Pop-out açık değilse lift ile öne getir
     f = sekme_frames.get(ad)
-    if f and not (ad in _popout_windows and _popout_windows[ad].winfo_exists()):
-        f.lift()
+    if f:
+        f.tkraise()   # tk.Frame.tkraise() — CTkFrame'den ~10x hızlı
 
 _popout_windows = {}
+# Kamera popup'larındaki label listesi — master_loop bunların hepsini günceller
+cam_popup_labels = {}   # pencere_id → tk.Label
 
 def pop_out(ad, title):
     """
-    Sekme frame'ini ayrı Toplevel'e taşır.
-    place(in_=win) ile frame içeriği doğrudan yeni pencerede görünür.
+    İçeriği KOPYALAYARAK ayrı pencere açar.
+    Tkinter widget reparenting yapmaz — bunun yerine:
+    - Kamera sekmesi: yeni Label oluştur, master_loop günceller
+    - YKİ sekmesi: popup mesaj
+    - Yarışma sekmesi: popup mesaj
     """
     if ad in _popout_windows and _popout_windows[ad].winfo_exists():
         _popout_windows[ad].lift(); return
 
-    f = sekme_frames.get(ad)
-    if f is None: return
-
-    win = ctk.CTkToplevel(app)
+    win = tk.Toplevel(app)
     win.title(f"⤢  {title}")
-    win.geometry("1400x860")
     win.configure(bg="#020810")
-    win.grid_rowconfigure(0, weight=1)
-    win.grid_columnconfigure(0, weight=1)
     _popout_windows[ad] = win
 
-    # Frame'i yeni pencereye place et
-    f.place_forget()
-    f.place(in_=win, relx=0, rely=0, relwidth=1, relheight=1)
-    f.lift()
+    if ad == "kamera":
+        win.geometry("1280x720")
+        win.resizable(True, True)
 
-    # Pencere boyutlandıktan sonra içeriği güncelle
-    def _after_show():
-        win.update_idletasks()
-        f.update_idletasks()
+        # Üst bar
+        hdr = tk.Frame(win, bg="#04080f", height=36)
+        hdr.pack(fill="x")
+        tk.Label(hdr, text="[ İHA FPV KAMERA — TAM EKRAN ]",
+                 font=("Consolas", 13, "bold"),
+                 fg="#38BDF8", bg="#04080f").pack(side="left", padx=14, pady=7)
 
-    win.after(100, _after_show)
+        # Kamera label — master_loop bunu günceller
+        cam_lbl = tk.Label(win, bg="#000000")
+        cam_lbl.pack(fill="both", expand=True)
 
-    def on_close():
-        win.destroy()
-        _popout_windows.pop(ad, None)
-        # Ana container'a geri taşı
-        f.place_forget()
-        f.place(in_=tab_container, relx=0, rely=0, relwidth=1, relheight=1)
-        if aktif_sekme[0] == ad:
-            f.lift()
-        else:
-            # Aktif sekmeyi öne getir
-            af = sekme_frames.get(aktif_sekme[0])
-            if af: af.lift()
-    win.protocol("WM_DELETE_WINDOW", on_close)
+        # Overlay
+        ov = tk.Frame(win, bg="#04080f")
+        ov.place(relx=0.99, rely=0.97, anchor="se")
+        for sv, col in [(SV["lat"],"#38BDF8"),(SV["lon"],"#38BDF8"),
+                         (SV["alt"],"#14B8A6"),(SV["as"],"#10B981")]:
+            tk.Label(ov, textvariable=sv,
+                     font=("Consolas",13,"bold"),
+                     fg=col, bg="#04080f").pack(padx=10, pady=1)
+
+        wid = id(win)
+        cam_popup_labels[wid] = cam_lbl
+
+        def on_close_cam():
+            cam_popup_labels.pop(wid, None)
+            win.destroy()
+            _popout_windows.pop(ad, None)
+        win.protocol("WM_DELETE_WINDOW", on_close_cam)
+
+    elif ad == "yki":
+        win.geometry("1600x900")
+        # YKİ içeriği aynı thread'de çalışıyor, duplicate edemeyiz
+        # Kullanıcıya bilgi ver
+        lbl = tk.Label(win,
+            text="YKİ İstasyonu ana pencerede çalışıyor.\nBu pencere harita ve telemetri verilerini izlemek için kullanılabilir.",
+            font=("Consolas",14), fg="#94a3b8", bg="#020810", justify="center")
+        lbl.pack(expand=True)
+        def on_close_yki():
+            win.destroy(); _popout_windows.pop(ad, None)
+        win.protocol("WM_DELETE_WINDOW", on_close_yki)
+
+    else:  # yarisma
+        win.geometry("1400x860")
+        lbl = tk.Label(win,
+            text="Yarışma Sunucusu paneli ana pencerede çalışıyor.",
+            font=("Consolas",14), fg="#94a3b8", bg="#020810")
+        lbl.pack(expand=True)
+        def on_close_y():
+            win.destroy(); _popout_windows.pop(ad, None)
+        win.protocol("WM_DELETE_WINDOW", on_close_y)
 
 # ── Üst Bar ───────────────────────────────────────────────────
 top = ctk.CTkFrame(app, height=52, fg_color="#04080f", corner_radius=0)
@@ -676,15 +703,19 @@ for k, label in TAB_DEFS:
         corner_radius=6, height=32, width=36,
         command=lambda x=k, t=titles[k]: pop_out(x, t)).pack(side="left", padx=(0,6))
 
-# ── Ana sekme container — place() ile anlık geçiş ────────────
-# Tüm sekme frame'leri aynı konuma place edilir.
-# Geçiş = lift() → sıfır layout hesabı, sıfır gecikme.
-tab_container = ctk.CTkFrame(app, fg_color="transparent", corner_radius=0)
+# ── Ana sekme container — tkraise() ile sıfır gecikme ────────
+# tk.Frame kullan (ctk değil) → tkraise() anında çalışır
+# CTkFrame'de internal canvas redraw tetikleniyor, tk.Frame'de yok.
+tab_container = tk.Frame(app, bg="#020810")
 tab_container.pack(fill="both", expand=True)
 
-# YKİ sekmesi
-yki_frame = ctk.CTkFrame(tab_container, fg_color="transparent")
-yki_frame.place(relx=0, rely=0, relwidth=1, relheight=1)
+# Tüm sekme frame'leri aynı grid cell'ine yerleştirilir
+tab_container.grid_rowconfigure(0, weight=1)
+tab_container.grid_columnconfigure(0, weight=1)
+
+# YKİ sekmesi — tk.Frame (tkraise için)
+yki_frame = tk.Frame(tab_container, bg="#020810")
+yki_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["yki"] = yki_frame
 
 main = ctk.CTkFrame(yki_frame, fg_color="transparent")
@@ -1222,10 +1253,10 @@ def master_loop():
                 _mk = SON_KAMERA_KARESI; SON_KAMERA_KARESI = None
         if _mk is not None:
             _pil = Image.fromarray(_mk)
-            # Sol panel (küçük) — HER ZAMAN güncelle
+            # Sol panel (küçük)
             _ikt = ImageTk.PhotoImage(image=_pil)
             lbl_kamera.imgtk = _ikt; lbl_kamera.configure(image=_ikt)
-            # Tam ekran — HER ZAMAN güncelle (sekme veya popup fark etmez)
+            # Kamera sekmesi tam ekran (sekme aktifse güncelle)
             try:
                 fw = lbl_kamera_fs.winfo_width()
                 fh = lbl_kamera_fs.winfo_height()
@@ -1234,7 +1265,19 @@ def master_loop():
                     _ikt_fs = ImageTk.PhotoImage(image=_pil_fs)
                     lbl_kamera_fs.imgtk = _ikt_fs
                     lbl_kamera_fs.configure(image=_ikt_fs)
-            except: pass 
+            except: pass
+            # Tüm popup kamera pencereleri
+            dead = []
+            for wid, plbl in cam_popup_labels.items():
+                try:
+                    pw = plbl.winfo_width(); ph = plbl.winfo_height()
+                    if pw > 20 and ph > 20:
+                        _pp = _pil.resize((pw, ph), Image.NEAREST)
+                        _pp_tk = ImageTk.PhotoImage(image=_pp)
+                        plbl.imgtk = _pp_tk; plbl.configure(image=_pp_tk)
+                except Exception:
+                    dead.append(wid)
+            for d in dead: cam_popup_labels.pop(d, None) 
 
     if OPENGL_OK:
         _hk = None
@@ -1645,47 +1688,34 @@ def _build_panel():
 # ══════════════════════════════════════════════════════════════
 #  KAMERA SEKMESİ — Tam Ekran FPV
 # ══════════════════════════════════════════════════════════════
-kamera_frame = ctk.CTkFrame(tab_container, fg_color="#000000", corner_radius=0)
-kamera_frame.place(relx=0, rely=0, relwidth=1, relheight=1)
+kamera_frame = tk.Frame(tab_container, bg="#000000")
+kamera_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["kamera"] = kamera_frame
 
-# Kamera başlık çubuğu
-cam_hdr = ctk.CTkFrame(kamera_frame, height=38, fg_color="#04080f", corner_radius=0)
-cam_hdr.pack(fill="x")
-cam_hdr.pack_propagate(False)
-ctk.CTkLabel(cam_hdr, text="[ İHA FPV KAMERA — TAM EKRAN ]",
-             font=FK, text_color="#38BDF8").pack(side="left", padx=16, pady=8)
+# Kamera başlık çubuğu (tk.Frame — tab_container ile uyumlu)
+cam_hdr = tk.Frame(kamera_frame, bg="#04080f", height=38)
+cam_hdr.pack(fill="x"); cam_hdr.pack_propagate(False)
+tk.Label(cam_hdr, text="[ İHA FPV KAMERA — TAM EKRAN ]",
+         font=("Consolas", 13, "bold"),
+         fg="#38BDF8", bg="#04080f").pack(side="left", padx=16, pady=7)
 
 # Gerçek zamanlı kamera feed
 lbl_kamera_fs = tk.Label(kamera_frame, bg="#000000")
 lbl_kamera_fs.pack(fill="both", expand=True)
 
 # Overlay: sağ alt köşede koordinat + hız
-cam_overlay = ctk.CTkFrame(kamera_frame, fg_color="#04080f",
-                            corner_radius=8, border_width=1, border_color="#1e3a5f")
+cam_overlay = tk.Frame(kamera_frame, bg="#04080f", bd=1, relief="solid")
 cam_overlay.place(relx=0.99, rely=0.98, anchor="se")
-ctk.CTkLabel(cam_overlay,
-    textvariable=SV["lat"],
-    font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
-    text_color="#38BDF8").pack(padx=10, pady=(6,1))
-ctk.CTkLabel(cam_overlay,
-    textvariable=SV["lon"],
-    font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
-    text_color="#38BDF8").pack(padx=10, pady=(0,1))
-ctk.CTkLabel(cam_overlay,
-    textvariable=SV["alt"],
-    font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
-    text_color="#14B8A6").pack(padx=10, pady=(0,1))
-ctk.CTkLabel(cam_overlay,
-    textvariable=SV["as"],
-    font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
-    text_color="#10B981").pack(padx=10, pady=(0,6))
+for sv_key, col in [("lat","#38BDF8"),("lon","#38BDF8"),("alt","#14B8A6"),("as","#10B981")]:
+    tk.Label(cam_overlay, textvariable=SV[sv_key],
+             font=("Consolas",13,"bold"),
+             fg=col, bg="#04080f").pack(padx=10, pady=2)
 
 # ══════════════════════════════════════════════════════════════
 #  YARIŞMA SEKMESİ — TEKNOFEST Panel
 # ══════════════════════════════════════════════════════════════
-yarisma_frame = ctk.CTkFrame(tab_container, fg_color="#020810", corner_radius=0)
-yarisma_frame.place(relx=0, rely=0, relwidth=1, relheight=1)
+yarisma_frame = tk.Frame(tab_container, bg="#020810")
+yarisma_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["yarisma"] = yarisma_frame
 
 # _build_panel() bu frame'i dolduracak
