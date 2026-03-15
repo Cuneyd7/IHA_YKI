@@ -2,7 +2,7 @@
 YKİ OpenGL - Pygame Donanım İvmelendirmeli Sürüm (Glass Cockpit UI)
 - Ortadaki ufuk çizgisi kaldırıldı.
 - HUD üstüne Pusula, Sol ve Sağ tarafa bağımsız Roll ve Pitch yuvarlak kadranları (Artificial Horizon) eklendi.
-- KUSURSUZ OPTİMİZASYON: StringVar asenkron UI motoru, C-Level Tkinter Render, Multithreading Ağ.
+- KUSURSUZ OPTİMİZASYON: Z-Index Sıfır Gecikmeli Sekmeler, Multithreading Ağ.
 """
 
 import customtkinter as ctk
@@ -519,29 +519,36 @@ FK = ctk.CTkFont(family="Consolas", size=14, weight="bold")
 FL = ctk.CTkFont(family="Consolas", size=14)
 FU = ctk.CTkFont(family="Consolas", size=11, weight="bold")
 
-# ══ GECİKMESİZ SEKME SİSTEMİ ════════════════════════════════════
+# ══ SIFIR GECİKMELİ SEKME SİSTEMİ (Z-INDEX) ════════════════════════
 aktif_sekme = [None]
 sekme_frames = {}   
 sekme_btnler = {}   
 
 def sekme_ac(ad):
+    """Anında sekme değişimi (Tkinter Grid Z-Index'i Kullanarak Silmeden En Öne Alır)"""
     aktif_sekme[0] = ad
     for k, b in sekme_btnler.items():
         if k == ad: b.configure(fg_color="#1e3a5f", text_color="#00ffcc")
         else: b.configure(fg_color="transparent", text_color="#64748b")
-    def _switch():
-        for k, f in sekme_frames.items():
-            if k == ad: f.pack(fill="both", expand=True)
-            else: f.pack_forget()
-    app.after(1, _switch)
+        
+    # Eğer sekme pop-out penceresindeyse ana ekranda göstermeye çalışma
+    if ad in _popout_windows and _popout_windows[ad].winfo_exists():
+        return
+        
+    f = sekme_frames.get(ad)
+    if f: 
+        f.tkraise() # SIFIR GECİKME: Çerçeve zaten var, sadece z-index ile en öne al
 
 _popout_windows = {}   
 _kamera_labels = [] 
 
 def pop_out(ad, title):
-    """Sekmeyi ayrı pencerede gösterir. (TclError Önleyici Bağımsız Klonlama)"""
+    """Sekmeyi tamamen yeni bir pencereye taşır ve ana ekranı boş bırakmaz."""
     if ad in _popout_windows and _popout_windows[ad].winfo_exists():
         _popout_windows[ad].lift(); return
+
+    f = sekme_frames.get(ad)
+    if f is None: return
 
     win = ctk.CTkToplevel(app)
     win.title(f"⤢  {title}")
@@ -549,23 +556,22 @@ def pop_out(ad, title):
     win.configure(bg="#020810")
     _popout_windows[ad] = win
 
-    if ad == "kamera":
-        lbl_kamera_pop = tk.Label(win, bg="#000000")
-        lbl_kamera_pop.pack(fill="both", expand=True)
-        _kamera_labels.append(lbl_kamera_pop)
-        def on_close_kamera():
-            if lbl_kamera_pop in _kamera_labels: _kamera_labels.remove(lbl_kamera_pop)
-            win.destroy()
-            _popout_windows.pop(ad, None)
-        win.protocol("WM_DELETE_WINDOW", on_close_kamera)
-        
-    elif ad == "yarisma":
-        _build_panel(win)
-        def on_close_yarisma():
-            win.destroy()
-            _popout_windows.pop(ad, None)
-        win.protocol("WM_DELETE_WINDOW", on_close_yarisma)
+    f.grid_forget() # Ana grid'den çıkar
+    f.pack(in_=win, fill="both", expand=True) # Toplevel içine yerleştir
 
+    # Ekranda o an bu sekme açıktıysa, YKİ ana sekmesine geri dön ki ekran siyah kalmasın
+    if aktif_sekme[0] == ad:
+        sekme_ac("yki")
+
+    def on_close():
+        f.pack_forget() # Pop-out pencereden sök
+        win.destroy()
+        _popout_windows.pop(ad, None)
+        # Ana grid'e (katmanların arasına) geri yerleştir
+        f.grid(in_=tab_container, row=0, column=0, sticky="nsew")
+        if aktif_sekme[0] == ad:
+            f.tkraise()
+    win.protocol("WM_DELETE_WINDOW", on_close)
 
 # ── Üst Bar ───────────────────────────────────────────────────
 top = ctk.CTkFrame(app, height=52, fg_color="#04080f", corner_radius=0)
@@ -596,12 +602,15 @@ for k, label in TAB_DEFS:
             fg_color="#050d1a", text_color="#38BDF8", hover_color="#1e3a5f", corner_radius=6, height=32, width=36,
             command=lambda x=k, t=titles[k]: pop_out(x, t)).pack(side="left", padx=(0,6))
 
-# ── Ana sekme container ─────────────
+# ── Ana sekme container (Tüm sekmeler üst üste bindirilir) ─────────────
 tab_container = ctk.CTkFrame(app, fg_color="transparent", corner_radius=0)
 tab_container.pack(fill="both", expand=True)
+tab_container.grid_rowconfigure(0, weight=1)
+tab_container.grid_columnconfigure(0, weight=1)
 
-# 1. YKİ SEKMESİ
+# 1. YKİ SEKMESİ (Aynı gride ekle)
 yki_frame = ctk.CTkFrame(tab_container, fg_color="transparent")
+yki_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["yki"] = yki_frame
 
 main = ctk.CTkFrame(yki_frame, fg_color="transparent")
@@ -1306,7 +1315,6 @@ def _build_panel(pwin=None):
     log_tb.grid(row=10, column=0, padx=10, pady=(0,8), sticky="ew"); log_tb.configure(state="disabled")
 
     def _panel_update():
-        # --- HATA ÇÖZÜMÜ: Eğer pencere kapatıldıysa döngüyü sessizce durdur ---
         if not pwin.winfo_exists(): return 
         
         lbl_p_lat.configure(text=f"{D.get('lat',0.0):.5f} °")
@@ -1343,6 +1351,7 @@ def _build_panel(pwin=None):
 #  KAMERA SEKMESİ — Tam Ekran FPV
 # ══════════════════════════════════════════════════════════════
 kamera_frame = ctk.CTkFrame(tab_container, fg_color="#000000", corner_radius=0)
+kamera_frame.grid(row=0, column=0, sticky="nsew") # BURASI DEĞİŞTİ - GRIDE EKLENDİ
 sekme_frames["kamera"] = kamera_frame
 
 cam_hdr = ctk.CTkFrame(kamera_frame, height=38, fg_color="#04080f", corner_radius=0)
@@ -1363,6 +1372,7 @@ ctk.CTkLabel(cam_overlay, textvariable=SV["as"], font=ctk.CTkFont(family="Consol
 #  YARIŞMA SEKMESİ — TEKNOFEST Panel
 # ══════════════════════════════════════════════════════════════
 yarisma_frame = ctk.CTkFrame(tab_container, fg_color="#020810", corner_radius=0)
+yarisma_frame.grid(row=0, column=0, sticky="nsew") # BURASI DEĞİŞTİ - GRIDE EKLENDİ
 sekme_frames["yarisma"] = yarisma_frame
 
 _YARISMA_PARENT = yarisma_frame   
