@@ -575,11 +575,95 @@ FK = ctk.CTkFont(family="Consolas", size=14, weight="bold")
 FL = ctk.CTkFont(family="Consolas", size=14)
 FU = ctk.CTkFont(family="Consolas", size=11, weight="bold")
 
-top = ctk.CTkFrame(app, height=50, fg_color="#04080f", corner_radius=0)
-top.pack(side="top", fill="x")
-ctk.CTkLabel(top, text="❖  KARAN İHA YER KONTROL İSTASYONU  ❖", font=FB, text_color="#00ffcc").pack(pady=10)
+# ══ Sekme Sistemi ════════════════════════════════════════════
+# aktif_sekme: "yki" | "kamera" | "yarisma"
+aktif_sekme = [None]
+sekme_frames = {}   # sekme adı → CTkFrame
+sekme_btnler = {}   # sekme adı → CTkButton
 
-main = ctk.CTkFrame(app, fg_color="transparent")
+def sekme_ac(ad):
+    """Aktif sekmeyi değiştirir, diğerlerini gizler."""
+    aktif_sekme[0] = ad
+    for k, f in sekme_frames.items():
+        if k == ad:
+            f.pack(fill="both", expand=True)
+        else:
+            f.pack_forget()
+    for k, b in sekme_btnler.items():
+        if k == ad:
+            b.configure(fg_color="#1e3a5f", text_color="#00ffcc")
+        else:
+            b.configure(fg_color="transparent", text_color="#64748b")
+
+def pop_out(ad, title):
+    """Sekmeyi ayrı pencereye al."""
+    f = sekme_frames.get(ad)
+    if f is None: return
+    # Ayrı pencere oluştur
+    win = ctk.CTkToplevel(app)
+    win.title(title)
+    win.geometry("1400x860")
+    win.configure(bg="#020810")
+    # Frame'i bu pencereye taşı
+    f.pack_forget()
+    f.place_forget()
+    try: f.grid_forget()
+    except: pass
+    f.pack(in_=win, fill="both", expand=True)
+    # Pencere kapanınca geri al
+    def on_close():
+        f.pack_forget()
+        win.destroy()
+        # Ana pencerede tekrar göster (ama diğer sekmeler gizli kalır)
+        if aktif_sekme[0] == ad:
+            f.pack(fill="both", expand=True)
+    win.protocol("WM_DELETE_WINDOW", on_close)
+
+# ── Üst Bar ───────────────────────────────────────────────────
+top = ctk.CTkFrame(app, height=52, fg_color="#04080f", corner_radius=0)
+top.pack(side="top", fill="x")
+top.grid_columnconfigure(1, weight=1)
+
+# Logo
+ctk.CTkLabel(top, text="❖  KARAN İHA YER KONTROL İSTASYONU  ❖",
+             font=FB, text_color="#00ffcc").pack(side="left", padx=20, pady=10)
+
+# Sekme butonları (sağ taraf)
+tab_bar = ctk.CTkFrame(top, fg_color="transparent")
+tab_bar.pack(side="right", padx=10, pady=8)
+
+TAB_DEFS = [
+    ("yki",      "⬛  YKİ İSTASYONU"),
+    ("kamera",   "📷  KAMERA"),
+    ("yarisma",  "🏁  YARIŞMA SUNUCUSU"),
+]
+for k, label in TAB_DEFS:
+    b = ctk.CTkButton(tab_bar, text=label,
+        font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
+        fg_color="transparent", text_color="#64748b",
+        hover_color="#0f2a4a", corner_radius=8, height=32, width=180,
+        command=lambda x=k: sekme_ac(x))
+    b.pack(side="left", padx=3)
+    sekme_btnler[k] = b
+
+# Pop-out butonları
+for k, label in TAB_DEFS:
+    titles = {"yki":"KARAN YKİ", "kamera":"FPV Kamera - Tam Ekran", "yarisma":"TEKNOFEST Yarışma Sunucusu"}
+    ctk.CTkButton(tab_bar, text="⤢",
+        font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
+        fg_color="#050d1a", text_color="#38BDF8", hover_color="#1e3a5f",
+        corner_radius=6, height=32, width=36,
+        command=lambda x=k, t=titles[k]: pop_out(x, t)).pack(side="left", padx=(0,6))
+
+# ── Ana sekme container ───────────────────────────────────────
+tab_container = ctk.CTkFrame(app, fg_color="transparent", corner_radius=0)
+tab_container.pack(fill="both", expand=True)
+
+# YKİ sekmesi frame'i
+yki_frame = ctk.CTkFrame(tab_container, fg_color="transparent")
+sekme_frames["yki"] = yki_frame
+
+main = ctk.CTkFrame(yki_frame, fg_color="transparent")
 main.pack(fill="both", expand=True, padx=15, pady=15)
 main.grid_columnconfigure(0, weight=0, minsize=480); main.grid_columnconfigure(1, weight=1); main.grid_columnconfigure(2, weight=0, minsize=380); main.grid_rowconfigure(0, weight=1)
 
@@ -1036,9 +1120,21 @@ def master_loop():
     if EKSTRA_MODULLER_OK:
         with KAMERA_KILIDI:
             if SON_KAMERA_KARESI is not None:
-                imgtk = ImageTk.PhotoImage(image=Image.fromarray(SON_KAMERA_KARESI))
-                lbl_kamera.imgtk = imgtk; lbl_kamera.configure(image=imgtk)
-                SON_KAMERA_KARESI = None 
+                _kare = SON_KAMERA_KARESI; SON_KAMERA_KARESI = None
+        if EKSTRA_MODULLER_OK and '_kare' in dir() and _kare is not None:
+            _pil = Image.fromarray(_kare)
+            # Sol panel kamera (küçük)
+            imgtk = ImageTk.PhotoImage(image=_pil)
+            lbl_kamera.imgtk = imgtk; lbl_kamera.configure(image=imgtk)
+            # Tam ekran kamera sekmesi
+            try:
+                fw = max(lbl_kamera_fs.winfo_width(), 1)
+                fh = max(lbl_kamera_fs.winfo_height(), 1)
+                _pil_fs = _pil.resize((fw, fh), Image.BILINEAR) if (fw > 10 and fh > 10) else _pil
+                imgtk_fs = ImageTk.PhotoImage(image=_pil_fs)
+                lbl_kamera_fs.imgtk_fs = imgtk_fs; lbl_kamera_fs.configure(image=imgtk_fs)
+            except: pass
+            _kare = None 
 
     if OPENGL_OK:
         with HUD_KILIDI:
@@ -1089,11 +1185,7 @@ def master_loop():
 # ══════════════════════════════════════════════════════════════
 def _build_panel():
     """İkinci ekran: TEKNOFEST yarışma sunucusu paneli."""
-    pwin = ctk.CTkToplevel(app)
-    pwin.geometry("1400x900+1620+0")   # Ana pencerenin sağında aç
-    pwin.title("TEKNOFEST 2026 — Savaşan İHA Yarışma Sunucusu Paneli")
-    pwin.configure(bg="#020810")
-    pwin.protocol("WM_DELETE_WINDOW", lambda: None)  # Kapatmayı engelle
+    pwin = _YARISMA_PARENT   # Ayrı pencere değil, sekme frame'i
 
     pFB = ctk.CTkFont(family="Consolas", size=18, weight="bold")
     pFK = ctk.CTkFont(family="Consolas", size=13, weight="bold")
@@ -1443,15 +1535,65 @@ def _build_panel():
         log_tb.insert("end", "\n".join(_panel_log[-25:]))
         log_tb.see("end"); log_tb.configure(state="disabled")
 
-        pwin.after(500, _panel_update)
+        app.after(500, _panel_update)
 
-    pwin.after(600, _panel_update)
+    app.after(600, _panel_update)
     plog("Panel hazır. Giriş yapın.")
+
+# ══════════════════════════════════════════════════════════════
+#  KAMERA SEKMESİ — Tam Ekran FPV
+# ══════════════════════════════════════════════════════════════
+kamera_frame = ctk.CTkFrame(tab_container, fg_color="#000000", corner_radius=0)
+sekme_frames["kamera"] = kamera_frame
+
+# Kamera başlık çubuğu
+cam_hdr = ctk.CTkFrame(kamera_frame, height=38, fg_color="#04080f", corner_radius=0)
+cam_hdr.pack(fill="x")
+cam_hdr.pack_propagate(False)
+ctk.CTkLabel(cam_hdr, text="[ İHA FPV KAMERA — TAM EKRAN ]",
+             font=FK, text_color="#38BDF8").pack(side="left", padx=16, pady=8)
+
+# Gerçek zamanlı kamera feed
+lbl_kamera_fs = tk.Label(kamera_frame, bg="#000000")
+lbl_kamera_fs.pack(fill="both", expand=True)
+
+# Overlay: sağ alt köşede koordinat + hız
+cam_overlay = ctk.CTkFrame(kamera_frame, fg_color="#04080f99",
+                            corner_radius=8, border_width=1, border_color="#1e3a5f")
+cam_overlay.place(relx=0.99, rely=0.98, anchor="se")
+ctk.CTkLabel(cam_overlay,
+    textvariable=SV["lat"],
+    font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
+    text_color="#38BDF8").pack(padx=10, pady=(6,1))
+ctk.CTkLabel(cam_overlay,
+    textvariable=SV["lon"],
+    font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
+    text_color="#38BDF8").pack(padx=10, pady=(0,1))
+ctk.CTkLabel(cam_overlay,
+    textvariable=SV["alt"],
+    font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
+    text_color="#14B8A6").pack(padx=10, pady=(0,1))
+ctk.CTkLabel(cam_overlay,
+    textvariable=SV["as"],
+    font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
+    text_color="#10B981").pack(padx=10, pady=(0,6))
+
+# ══════════════════════════════════════════════════════════════
+#  YARIŞMA SEKMESİ — TEKNOFEST Panel
+# ══════════════════════════════════════════════════════════════
+yarisma_frame = ctk.CTkFrame(tab_container, fg_color="#020810", corner_radius=0)
+sekme_frames["yarisma"] = yarisma_frame
+
+# _build_panel() bu frame'i dolduracak
+_YARISMA_PARENT = yarisma_frame   # build_panel bunu kullanacak
 
 # ── Panel penceresini aç ──────────────────────────────────────
 _build_panel()
 
+# ── Başlangıç sekmesini aç ────────────────────────────────────
+app.after(100, lambda: sekme_ac("yki"))
+
 # Sistemleri Başlat
-app.after(100, telemetry_ui_loop)
-app.after(200, master_loop)
+app.after(150, telemetry_ui_loop)
+app.after(250, master_loop)
 app.mainloop()
