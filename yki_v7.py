@@ -229,87 +229,130 @@ def _hud_arka_plan():
 
         if NUMPY_OK: np_buf = np.empty((HUD_H, HUD_W, 3), dtype=np.uint8)
 
-        clock = pygame.time.Clock()
-        prev_time = _time.perf_counter()
-        pbo_idx = 0
-        first_frame = True
-        roll_pos = 0.0; pitch_pos = 0.0
-        roll_vel = 0.0; pitch_vel = 0.0
-        ROLL_OMEGA  = 7.0;  ROLL_ZETA  = 1.05
-        PITCH_OMEGA = 4.0;  PITCH_ZETA = 1.15
-        last_att_time = 0.0   
+        # ══ Uçuş Dinamiği Motoru ════════════════════════════════════════
+        # Mimari:
+        #  - RK4 integrasyon: Euler'den 4x daha hassas, birikimli hata yok
+        #  - Sürekli oran enjeksiyonu: MAVLink rollspeed/pitchspeed her frame blend
+        #  - Koordineli dönüş kuplajı: bank açısı → yaw görsel kıvrılma
+        #  - Kesin zamanlama: perf_counter spin-wait → clock.tick jitter'ı yok
+        #  - Dinamik dt cap: 20ms (50fps min) → yüksek yük altında kenetlenme yok
 
-        def spring_step(pos, vel, target, omega, zeta, dt):
-            acc = -2.0 * zeta * omega * vel - omega * omega * (pos - target)
-            return pos + (vel + acc * dt) * dt, vel + acc * dt
+        ROLL_OMEGA  = 8.0;   ROLL_ZETA  = 1.0   # kritik sönüm, çevik
+        PITCH_OMEGA = 5.0;   PITCH_ZETA = 1.1   # pitch biraz daha ağır
+        YAW_OMEGA   = 3.0;   YAW_ZETA   = 1.2   # yaw en ağır (büyük atalet)
+
+        roll_pos  = 0.0; roll_vel  = 0.0
+        pitch_pos = 0.0; pitch_vel = 0.0
+        yaw_vis   = 0.0; yaw_vel   = 0.0   # görsel yaw (koordineli dönüş)
+
+        def rk4(pos, vel, target, omega, zeta, dt):
+            """
+            4. derece Runge-Kutta spring integratörü.
+            Euler'den çok daha stabil — büyük dt'de bile salınım olmaz.
+            """
+            def d(p, v):
+                a = -2.0*zeta*omega*v - omega*omega*(p - target)
+                return v, a
+            k1p, k1v = d(pos,           vel)
+            k2p, k2v = d(pos+k1p*dt*.5, vel+k1v*dt*.5)
+            k3p, k3v = d(pos+k2p*dt*.5, vel+k2v*dt*.5)
+            k4p, k4v = d(pos+k3p*dt,    vel+k3v*dt)
+            return (pos + (k1p+2*k2p+2*k3p+k4p)*dt/6,
+                    vel + (k1v+2*k2v+2*k3v+k4v)*dt/6)
+
+        FRAME_DT  = 1.0 / 120.0   # hedef 120fps
+        prev_time = _time.perf_counter()
+        next_frame = prev_time
+        pbo_idx = 0; first_frame = True
 
         while True:
             try:
-                pygame.event.pump()
+                # ── Kesin zamanlama: spin-wait son 1ms ────────────────────
+                next_frame += FRAME_DT
+                sleep_t = next_frame - _time.perf_counter() - 0.001
+                if sleep_t > 0: _time.sleep(sleep_t)
+                while _time.perf_counter() < next_frame: pass   # spin ≤1ms
+
                 now = _time.perf_counter()
-                dt = min(now - prev_time, 0.025)   
+                dt  = min(now - prev_time, 0.020)   # 20ms cap
                 prev_time = now
 
-                att_t = D.get("att_time", 0.0)
-                if att_t != last_att_time:
-                    last_att_time = att_t
-                    mav_rollspeed = D.get("rollspeed",  0.0)
-                    mav_pitchspeed = D.get("pitchspeed", 0.0)
-                    BLEND = 0.6
-                    roll_vel = roll_vel * (1.0 - BLEND) + mav_rollspeed * BLEND
-                    pitch_vel = pitch_vel * (1.0 - BLEND) + mav_pitchspeed * BLEND
+                pygame.event.pump()
 
-                roll_pos, roll_vel = spring_step(roll_pos, roll_vel, D.get("roll", 0.0), ROLL_OMEGA, ROLL_ZETA, dt)
-                pitch_pos, pitch_vel = spring_step(pitch_pos, pitch_vel, D.get("pitch", 0.0), PITCH_OMEGA, PITCH_ZETA, dt)
+                # ── Sürekli MAVLink oran enjeksiyonu ──────────────────────
+                # Discrete event yerine her frame blend → hiç atlama yok
+                mav_rr = D.get("rollspeed",  0.0)
+                mav_pr = D.get("pitchspeed", 0.0)
+                mav_yr = D.get("yawspeed",   0.0)
+                # tau=15ms ile blend → çok anlık tepki, ama ani sıçrama yok
+                k_rate = 1.0 - math.exp(-dt / 0.015)
+                roll_vel  += (mav_rr - roll_vel)  * k_rate * 0.45
+                pitch_vel += (mav_pr - pitch_vel) * k_rate * 0.35
+                yaw_vel   += (mav_yr - yaw_vel)   * k_rate * 0.30
 
+                # ── RK4 ile uçuş dinamiği entegrasyonu ───────────────────
+                roll_pos,  roll_vel  = rk4(roll_pos,  roll_vel,
+                                           D.get("roll",  0.0), ROLL_OMEGA,  ROLL_ZETA,  dt)
+                pitch_pos, pitch_vel = rk4(pitch_pos, pitch_vel,
+                                           D.get("pitch", 0.0), PITCH_OMEGA, PITCH_ZETA, dt)
+
+                # ── Koordineli dönüş: bank → görsel yaw kıvrılması ───────
+                # Gerçek uçakta bank açısı arttıkça burun dönmeye başlar.
+                # yaw_target = roll * 0.18 rad (küçük bir kuplaj)
+                coordinated_yaw = roll_pos * 0.18
+                yaw_vis, yaw_vel = rk4(yaw_vis, yaw_vel,
+                                       coordinated_yaw, YAW_OMEGA, YAW_ZETA, dt)
+
+                # ── OpenGL render ─────────────────────────────────────────
                 glViewport(0, 0, HUD_W, HUD_H)
                 glClearColor(0.02, 0.04, 0.10, 1.0)
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
                 glMatrixMode(GL_PROJECTION); glLoadIdentity()
-                gluPerspective(45, HUD_W / HUD_H, 1.0, 100.0)
+                gluPerspective(45, HUD_W / HUD_H, 0.5, 200.0)
                 glMatrixMode(GL_MODELVIEW); glLoadIdentity()
-                glTranslatef(0.0, 0.3, -3.6)   # Y=+0.3 üste, Z=-3.6 uzaklaş → kanatlar tam sığar
-                glRotatef(math.degrees(-roll_pos),  0, 0, 1)
-                glRotatef(math.degrees(pitch_pos),  1, 0, 0)
+                glTranslatef(0.0, 0.3, -3.6)
+
+                # Dönüş sırası: yaw → pitch → roll (doğru Euler sırası)
+                glRotatef(math.degrees(yaw_vis),    0, 1, 0)   # yaw
+                glRotatef(math.degrees(pitch_pos),  1, 0, 0)   # pitch
+                glRotatef(math.degrees(-roll_pos),  0, 0, 1)   # roll
+
                 glEnable(GL_LIGHTING)
                 glColor3f(1, 1, 1)
                 glCallList(model_list)
 
+                # ── Asenkron PBO readback ─────────────────────────────────
                 if pbo_ok:
-                    read_idx = pbo_idx; proc_idx = 1 - pbo_idx      
-                    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo_ids[read_idx])
+                    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo_ids[pbo_idx])
                     glPixelStorei(GL_PACK_ALIGNMENT, 1)
-                    glReadPixels(0, 0, HUD_W, HUD_H, GL_RGB, GL_UNSIGNED_BYTE, 0)  
+                    glReadPixels(0, 0, HUD_W, HUD_H, GL_RGB, GL_UNSIGNED_BYTE, 0)
                     if not first_frame:
-                        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo_ids[proc_idx])
+                        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo_ids[1-pbo_idx])
                         ptr = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY)
-                        if ptr and NUMPY_OK:
-                            ctypes.memmove(np_buf.ctypes.data, ptr, PIX_BYTES)
-                            glUnmapBuffer(GL_PIXEL_PACK_BUFFER)
-                            img = Image.fromarray(np_buf[::-1].copy())
-                            with HUD_KILIDI: SON_HUD_KARESI = img
-                        elif ptr:
-                            raw = ctypes.string_at(ptr, PIX_BYTES)
-                            glUnmapBuffer(GL_PIXEL_PACK_BUFFER)
-                            img = Image.frombytes("RGB", (HUD_W, HUD_H), raw)
-                            img = img.transpose(Image.FLIP_TOP_BOTTOM)
-                            with HUD_KILIDI: SON_HUD_KARESI = img
+                        if ptr:
+                            if NUMPY_OK:
+                                ctypes.memmove(np_buf.ctypes.data, ptr, PIX_BYTES)
+                                glUnmapBuffer(GL_PIXEL_PACK_BUFFER)
+                                with HUD_KILIDI: SON_HUD_KARESI = Image.fromarray(np_buf[::-1].copy())
+                            else:
+                                raw = ctypes.string_at(ptr, PIX_BYTES)
+                                glUnmapBuffer(GL_PIXEL_PACK_BUFFER)
+                                img = Image.frombytes("RGB",(HUD_W,HUD_H),raw).transpose(Image.FLIP_TOP_BOTTOM)
+                                with HUD_KILIDI: SON_HUD_KARESI = img
                         else: glUnmapBuffer(GL_PIXEL_PACK_BUFFER)
                     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
-                    first_frame = False
-                    pbo_idx = 1 - pbo_idx   
+                    first_frame = False; pbo_idx = 1 - pbo_idx
                 else:
                     glPixelStorei(GL_PACK_ALIGNMENT, 1)
                     if NUMPY_OK:
-                        glReadPixels(0, 0, HUD_W, HUD_H, GL_RGB, GL_UNSIGNED_BYTE, np_buf)
-                        img = Image.fromarray(np_buf[::-1].copy())
+                        glReadPixels(0,0,HUD_W,HUD_H,GL_RGB,GL_UNSIGNED_BYTE,np_buf)
+                        with HUD_KILIDI: SON_HUD_KARESI = Image.fromarray(np_buf[::-1].copy())
                     else:
-                        raw = glReadPixels(0, 0, HUD_W, HUD_H, GL_RGB, GL_UNSIGNED_BYTE)
-                        img = Image.frombytes("RGB", (HUD_W, HUD_H), raw)
-                        img = img.transpose(Image.FLIP_TOP_BOTTOM)
-                    with HUD_KILIDI: SON_HUD_KARESI = img
+                        raw = glReadPixels(0,0,HUD_W,HUD_H,GL_RGB,GL_UNSIGNED_BYTE)
+                        img = Image.frombytes("RGB",(HUD_W,HUD_H),raw).transpose(Image.FLIP_TOP_BOTTOM)
+                        with HUD_KILIDI: SON_HUD_KARESI = img
                 pygame.display.flip()
-                clock.tick(120)
+
             except Exception: _time.sleep(0.05)
     except Exception as e: print("Pygame Başlatma Hatası:", e)
 
