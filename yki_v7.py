@@ -303,36 +303,42 @@ def _hud_arka_plan():
                 yaw_vis, yaw_vel = rk4(yaw_vis, yaw_vel,
                                        coordinated_yaw, YAW_OMEGA, YAW_ZETA, dt)
 
-                # ── Chase-Cam Render ─────────────────────────────────────
-                # Mimari:
-                #   gluLookAt: kamera modelin ARKASINDA ve hafif yukarısında
-                #   Model kendi ekseni etrafında döner (attitude)
-                #   Kamera sabit → İHA sanki havada kendi hareket ediyor gibi
+                # ── Body-Frame Chase-Cam ─────────────────────────────────
                 #
-                # gluLookAt parametreleri:
-                #   eye   (0, 0.5, 4.5)  → kuyruğun 4.5 birim gerisinde, 0.5 yukarı
-                #   at    (0, 0.1, 0)    → model merkezine bak, hafif yukarı
-                #   up    (0, 1, 0)      → ufuk düzgün durur
+                # Temel fikir: KAMERA modelin body frame'inde sabit.
+                # "Dünya" modelin attitude'una göre döner.
+                # Model ekranda hep aynı yerde — biz onun TAM ARKASINDAYIZ.
+                #
+                # OpenGL ModelView matrisi şöyle kurulur:
+                #   1. glLoadIdentity  → kamera orijinde, -Z'ye bakıyor
+                #   2. glTranslatef(0, -offset_y, -dist) → model kameradan
+                #      dist birim önde, offset_y kadar aşağıda
+                #      (= kamera modelin offset_y üstünde ve dist gerisinde)
+                #   3. Attitude dönüşleri MODEL'e uygulanır.
+                #      Kamera body-frame'de sabit olduğundan YAW UYGULANMAZ —
+                #      yaw kamerası kendi içinde döner, biz hep arkasındayız.
+                #      Yalnızca ROLL ve PITCH görsel fark yaratır.
+                #
+                # İşaret kuralları (kuyruğun arkasından bakış):
+                #   Roll+  → sağ kanat AŞAĞI  → glRotate(-roll, Z)
+                #   Pitch+ → burun YUKARI      → glRotate(+pitch, X)
+                #   Yaw    → koordineli dönüş  → glRotate(yaw*0.3, Y) hafif
                 glViewport(0, 0, HUD_W, HUD_H)
                 glClearColor(0.02, 0.04, 0.10, 1.0)
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
                 glMatrixMode(GL_PROJECTION); glLoadIdentity()
-                gluPerspective(52, HUD_W / HUD_H, 0.3, 200.0)
+                gluPerspective(50, HUD_W / HUD_H, 0.3, 200.0)
                 glMatrixMode(GL_MODELVIEW); glLoadIdentity()
 
-                # Kamera: model arkasında, sabit chase-cam pozisyonu
-                gluLookAt(
-                    0.0,  0.4,  2.8,   # eye: kuyruğun hemen gerisinde & yukarısında
-                    0.0,  0.1,  0.0,   # at:  model merkezi (hafif yukarı)
-                    0.0,  1.0,  0.0    # up:  Y ekseni yukarı
-                )
+                # Kamera body-frame offset: modelin 2.6 birim arkasında, 0.28 üstünde
+                glTranslatef(0.0, -0.28, -2.6)
 
-                # İHA attitude dönüşleri — model kendi merkezinde döner
-                # Gerçek uçuş sırası: Yaw → Pitch → Roll
-                # Roll işareti: +roll_pos → sağ kanat aşağı (arkadan bakışta doğal)
-                glRotatef(math.degrees( yaw_vis),    0, 1, 0)   # yaw
-                glRotatef(math.degrees( pitch_pos),  1, 0, 0)   # pitch nose up = pozitif
-                glRotatef(math.degrees(-roll_pos),   0, 0, 1)   # roll sağ = sağ kanat aşağı
+                # Attitude dönüşleri — YAW YOK (kamera body-frame'de = hep arkada)
+                # Yalnızca roll ve pitch görsel efekt yaratır (gerçek uçuş hissi)
+                # Hafif yaw: koordineli dönüş hissini verir ama kamerayı kaydırmaz
+                glRotatef(math.degrees(yaw_vis * 0.25), 0, 1, 0)  # çok küçük yaw
+                glRotatef(math.degrees( pitch_pos),     1, 0, 0)  # pitch up = + (burun kalkar)
+                glRotatef(math.degrees(-roll_pos),      0, 0, 1)  # roll+ = sağ kanat aşağı
 
                 glEnable(GL_LIGHTING)
                 glColor3f(1, 1, 1)
