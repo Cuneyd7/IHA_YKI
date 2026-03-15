@@ -891,6 +891,7 @@ def master_loop():
     app.after(16, master_loop) # Saf 60 FPS Grafik Döngüsü
 
 # Sistemleri Başlat
+#jghjksfdhjgkhfdsghsdf
 app.after(100, telemetry_ui_loop)
 app.after(200, master_loop)
 app.mainloop()
