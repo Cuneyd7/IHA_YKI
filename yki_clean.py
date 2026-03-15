@@ -13,6 +13,14 @@ import os
 import threading
 import time as _time
 try:
+    import requests
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    REQUESTS_OK = True
+except ImportError:
+    REQUESTS_OK = False
+    requests = None
+try:
     import numpy as np
     NUMPY_OK = True
 except ImportError:
