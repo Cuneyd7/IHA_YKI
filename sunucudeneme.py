@@ -4,6 +4,7 @@ YKİ OpenGL - Pygame Donanım İvmelendirmeli Sürüm (Glass Cockpit UI)
 - HUD üstüne Pusula, Sol ve Sağ tarafa bağımsız Roll ve Pitch yuvarlak kadranları (Artificial Horizon) eklendi.
 - KUSURSUZ OPTİMİZASYON: Z-Index Sıfır Gecikmeli Sekmeler, Multithreading Ağ.
 - YENİ: Harita Üzerinde Canlı Rakip Radarı, HSS Çemberleri ve QR Hedefi!
+- YENİ: Telemetri Veri Tipi Optimizasyonu (Katı Integer/Float Dönüşümü)
 """
 
 import customtkinter as ctk
@@ -369,7 +370,6 @@ HEDEF_KAMERA_W = 450; HEDEF_KAMERA_H = 350
 _msl_val = [0.0]; _agl_val = [0.0]; ALT_TOGGLE_MODE = ["MSL"]
 LAST_UI_ROLL = [-999.0]; LAST_UI_PITCH = [-999.0]; LAST_UI_HEADING = [-999.0]; LAST_MAP_UPDATE_TIME = [0.0]
 
-# --- RADAR SİSTEMİ İÇİN KÜRESEL NESNELER ---
 RAKIP_MARKER_NESNELERI = {}
 HSS_POLI_NESNELERI = []
 QR_MARKER = [None]
@@ -394,11 +394,8 @@ def ucak_ikon_onbellegi_olustur(base_img):
     for deg in range(360): cache[deg] = ImageTk.PhotoImage(base_img.rotate(-deg, resample=Image.BICUBIC, expand=False))
     return cache
 
-# --- HARİTA ÇİZİM FONKSİYONLARI ---
 def haritaya_hss_ciz(hss_listesi):
-    """API'den gelen HSS verilerini haritada kırmızı tehlike çemberi olarak çizer."""
     if not EKSTRA_MODULLER_OK: return
-    # Eski HSS çizimlerini haritadan temizle
     for p in HSS_POLI_NESNELERI: 
         try: p.delete()
         except: pass
@@ -410,7 +407,6 @@ def haritaya_hss_ciz(hss_listesi):
         r_m = h.get("hssYaricap", 0)
         if r_m <= 0: continue
         
-        # Dünyanın yuvarlaklığına göre metre -> derece dönüşümü (Harita Path'i için)
         path = []
         for aci in range(0, 361, 10):
             rad = math.radians(aci)
@@ -419,17 +415,14 @@ def haritaya_hss_ciz(hss_listesi):
             path.append((lat + d_lat, lon + d_lon))
         
         try:
-            # Çember çizimi (Sınır çizgisi)
             cizgi = map_widget.set_path(path, color="#ef4444", width=3)
             HSS_POLI_NESNELERI.append(cizgi)
-            # Merkez İşaretçisi
             m = map_widget.set_marker(lat, lon, text=f"HSS ID:{h.get('id')} (r={r_m}m)")
             HSS_POLI_NESNELERI.append(m)
         except Exception as e:
             print("HSS Çizim Hatası:", e)
 
 def haritaya_qr_ciz(lat, lon):
-    """API'den gelen QR hedef konumunu haritaya ekler."""
     if not EKSTRA_MODULLER_OK: return
     if QR_MARKER[0] is not None:
         try: QR_MARKER[0].delete()
@@ -501,10 +494,20 @@ def _api_get(endpoint):
 
 def _sunucu_saati_dict():
     s = sunucu_zaman[0]
-    return {"saat":s.get("saat",0),"dakika":s.get("dakika",0),"saniye":s.get("saniye",0),"milisaniye":s.get("milisaniye",0)}
+    return {
+        "saat": int(s.get("saat",0)),
+        "dakika": int(s.get("dakika",0)),
+        "saniye": int(s.get("saniye",0)),
+        "milisaniye": int(s.get("milisaniye",0))
+    }
 
 def _gps_saati_dict():
-    return {"saat":D["gps_saat"],"dakika":D["gps_dakika"],"saniye":D["gps_saniye"],"milisaniye":D["gps_ms"]}
+    return {
+        "saat": int(D.get("gps_saat", 0)),
+        "dakika": int(D.get("gps_dakika", 0)),
+        "saniye": int(D.get("gps_saniye", 0)),
+        "milisaniye": int(D.get("gps_ms", 0))
+    }
 
 def _otonom_mu():
     m = D.get("mode","").upper()
@@ -512,22 +515,24 @@ def _otonom_mu():
 
 def _telemetri_thread():
     while True:
-        # --- HATA ÇÖZÜMÜ: Çerez (Cookie) zorunluluğu kaldırıldı. Sadece Takım No yeterli ---
         if telemetri_aktif[0] and TAKIM_NO[0] > 0:
+            # --- KUSURSUZ OPTİMİZASYON: Tüm değerler JSON formatı için int ve float olarak kesinleştirildi ---
             paket = {
-                "takim_numarasi":  TAKIM_NO[0],
-                "iha_enlem":       round(D.get("lat",0.0), 7),
-                "iha_boylam":      round(D.get("lon",0.0), 7),
-                "iha_irtifa":      round(_agl_val[0], 2),
-                "iha_dikilme":     round(max(-90, min(90, math.degrees(D.get("pitch",0.0)))), 2),
-                "iha_yonelme":     int(D.get("heading",0)) % 360,
-                "iha_yatis":       round(max(-90, min(90, math.degrees(D.get("roll",0.0)))), 2),
-                "iha_hiz":         round(max(0, D.get("gs",0.0)), 2),
-                "iha_batarya":     max(0, min(100, D.get("batt_pct",0))),
-                "iha_otonom":      _otonom_mu(),
-                "iha_kilitlenme":  0,
-                "hedef_merkez_X":  0, "hedef_merkez_Y": 0,
-                "hedef_genislik":  0, "hedef_yukseklik": 0,
+                "takim_numarasi":  int(TAKIM_NO[0]),
+                "iha_enlem":       float(D.get("lat", 0.0)),
+                "iha_boylam":      float(D.get("lon", 0.0)),
+                "iha_irtifa":      int(_agl_val[0]),
+                "iha_dikilme":     int(max(-90, min(90, math.degrees(D.get("pitch", 0.0))))),
+                "iha_yonelme":     int(D.get("heading", 0)) % 360,
+                "iha_yatis":       int(max(-90, min(90, math.degrees(D.get("roll", 0.0))))),
+                "iha_hiz":         int(max(0, D.get("gs", 0.0))),
+                "iha_batarya":     int(max(0, min(100, D.get("batt_pct", 0)))),
+                "iha_otonom":      int(_otonom_mu()),
+                "iha_kilitlenme":  int(0),
+                "hedef_merkez_X":  int(0),
+                "hedef_merkez_Y":  int(0),
+                "hedef_genislik":  int(0),
+                "hedef_yukseklik": int(0),
                 "gps_saati":       _gps_saati_dict(),
             }
             kod, cevap = _api_post("/api/telemetri_gonder", paket)
@@ -756,7 +761,7 @@ ctk.CTkButton(ctrl_bar, text="⬇ LAND", fg_color="#4c1d95", hover_color="#6d28d
 if OPENGL_OK:
     lbl_hud = tk.Label(frame3d, bg="#040810"); lbl_hud.pack(fill="both", expand=True, padx=2, pady=(8,2))
 
-# ── SAĞ PANEL ────────────────────────────
+# ── SAĞ PANEL (Sıfır kasmayan scroll motoru) ────────────
 _right_border = ctk.CTkFrame(main, width=395, corner_radius=12, fg_color="#0b1320", border_width=1, border_color="#1e293b")
 _right_border.grid(row=0, column=2, padx=0, pady=0, sticky="nsew")
 _right_border.grid_propagate(False)
@@ -1132,7 +1137,6 @@ def master_loop():
             if abs(MAP_SMOOTH_LAT[0] - prev_lat) > 5e-8 or abs(MAP_SMOOTH_LON[0] - prev_lon) > 5e-8:
                 map_widget.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0]); LAST_MAP_UPDATE_TIME[0] = _now_map
 
-        # --- YENİ: RAKİP TAKIMLARI HARİTADA GÜNCELLE ---
         if diger_takimlar[0]:
             guncel_takimlar = set()
             for t in diger_takimlar[0]:
@@ -1405,7 +1409,7 @@ def _build_panel(pwin=None):
                 def _u():
                     hss_tb.configure(state="normal"); hss_tb.delete("1.0","end")
                     hss_tb.insert("end",txt); hss_tb.configure(state="disabled")
-                    haritaya_hss_ciz(lst) # --- YENİ: HSS çemberlerini haritaya yolla ---
+                    haritaya_hss_ciz(lst) 
                 app.after(0,_u); plog(f"HSS: {len(lst)} sistem")
             else: plog(f"HSS hata: {kod}")
         threading.Thread(target=_h, daemon=True).start()
