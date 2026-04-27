@@ -368,7 +368,8 @@ MAP_LERP_HAZIR = [False]; MAP_GPS_TIME = [0.0]
 
 HEDEF_KAMERA_W = 450; HEDEF_KAMERA_H = 350
 _msl_val = [0.0]; _agl_val = [0.0]; ALT_TOGGLE_MODE = ["MSL"]
-LAST_UI_ROLL = [-999.0]; LAST_UI_PITCH = [-999.0]; LAST_UI_HEADING = [-999.0]; LAST_MAP_UPDATE_TIME = [0.0]
+LAST_UI_ROLL = [-999.0]; LAST_UI_PITCH = [-999.0]; LAST_UI_HEADING = [-999.0]
+LAST_MAP_UPDATE_TIME = [0.0]; LAST_TEAM_MAP_UPDATE_TIME = [0.0]
 
 RAKIP_MARKER_NESNELERI = {}
 HSS_POLI_NESNELERI = []
@@ -1169,12 +1170,12 @@ def map_loop():
                 try: ucak_marker.change_icon(yeni_ikon); ucak_marker.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
                 except: pass
 
-        if MAP_ODAK_MODU[0] == "IHA" and (_now_map - LAST_MAP_UPDATE_TIME[0] > 0.2):
-            if abs(MAP_SMOOTH_LAT[0] - prev_lat) > 5e-8 or abs(MAP_SMOOTH_LON[0] - prev_lon) > 5e-8:
                 map_widget.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
                 LAST_MAP_UPDATE_TIME[0] = _now_map
 
-        if diger_takimlar[0]:
+        # --- DİĞER TAKIMLARI THROTTLE ET (250ms'de bir güncelle) ---
+        if diger_takimlar[0] and (_now_map - LAST_TEAM_MAP_UPDATE_TIME[0] > 0.25):
+            LAST_TEAM_MAP_UPDATE_TIME[0] = _now_map
             guncel_takimlar = set()
             for t in diger_takimlar[0]:
                 t_no = t.get("takim_numarasi")
