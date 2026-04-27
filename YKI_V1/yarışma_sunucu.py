@@ -63,8 +63,8 @@ def telemetri():
         "konumBilgileri": [
             {
                 "takim_numarasi": 2,
-                "iha_enlem": 41.102500,
-                "iha_boylam": 29.022500,
+                "iha_enlem": 41.104500,
+                "iha_boylam": 29.024500,
                 "iha_irtifa": 45.0,
                 "iha_dikilme": 5.0,
                 "iha_yonelme": 45.0,
@@ -74,8 +74,8 @@ def telemetri():
             },
             {
                 "takim_numarasi": 3,
-                "iha_enlem": 41.101500,
-                "iha_boylam": 29.021000,
+                "iha_enlem": 41.099500,
+                "iha_boylam": 29.019000,
                 "iha_irtifa": 38.0,
                 "iha_dikilme": -2.0,
                 "iha_yonelme": 180.0,
@@ -112,8 +112,8 @@ def hss():
     cevap = {
         "sunucusaati": get_saat(),
         "hss_koordinat_bilgileri": [
-            {"id": 0, "hssEnlem": 41.103000, "hssBoylam": 29.023000, "hssYaricap": 100},
-            {"id": 1, "hssEnlem": 41.101000, "hssBoylam": 29.021000, "hssYaricap": 120}
+            {"id": 0, "hssEnlem": 41.106500, "hssBoylam": 29.026500, "hssYaricap": 100},
+            {"id": 1, "hssEnlem": 41.097500, "hssBoylam": 29.017500, "hssYaricap": 120}
         ]
     }
     return jsonify(cevap), 200
