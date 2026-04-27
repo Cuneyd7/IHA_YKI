@@ -1005,27 +1005,27 @@ batt_bot = ctk.CTkFrame(c6, fg_color="transparent"); batt_bot.pack(fill="x", pad
 ctk.CTkLabel(batt_bot, text="Kalan Kapasite", font=FU, text_color="#94a3b8").pack(side="left")
 ctk.CTkLabel(batt_bot, textvariable=SV["bmah"], font=ctk.CTkFont(family="Consolas", size=18, weight="bold"), text_color="#a78bfa").pack(side="right")
 
-# OPTİMİZASYON: Video okuma threading + Queue frame dropping ile çalışır.
-# OpenCV'nin C++ fonksiyonları (resize, cvtColor, read) GIL'i serbest bırakır —
-# bu yüzden threading ile gerçek paralellik sağlanır. Queue doluysa eski kare atlanır.
+# OPTİMİZASYON: Görüntü kısmında video yerine sabit görsel (JPEG/PNG) kullanılır.
 def _kamera_thread_fn():
-    """Arka planda video okur, Queue'ya en taze kareyi koyar."""
+    """Arka planda görseli yükler ve Queue'ya basar."""
     try:
-        cap = cv2.VideoCapture("test.mp4")
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0); continue
+        # Klasör içindeki sabit görseli oku
+        frame = cv2.imread("test_image.jpg")
+        if frame is not None:
             frame = cv2.resize(frame, (HEDEF_KAMERA_W, HEDEF_KAMERA_H), interpolation=cv2.INTER_NEAREST)
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            # OPTİMİZASYON: Kare Atlama — kuyruk doluysa eskiyi at, her zaman en taze kareyi koy
-            while not _KAMERA_QUEUE.empty():
-                try: _KAMERA_QUEUE.get_nowait()
-                except: break
-            try: _KAMERA_QUEUE.put_nowait(frame_rgb)
-            except: pass
-            _time.sleep(0.030)
-    except Exception as e: print("Video Hatası:", e)
+            
+            while True:
+                # Sabit görseli kuyruğa bas (Kamera kısmında görünecek)
+                while not _KAMERA_QUEUE.empty():
+                    try: _KAMERA_QUEUE.get_nowait()
+                    except: break
+                try: _KAMERA_QUEUE.put_nowait(frame_rgb)
+                except: pass
+                _time.sleep(0.1) # Sabit görüntü olduğu için düşük yenileme hızı yeterli
+        else:
+            print("HATA: test_image.jpg bulunamadı!")
+    except Exception as e: print("Görsel Yükleme Hatası:", e)
 
 if EKSTRA_MODULLER_OK:
     threading.Thread(target=_kamera_thread_fn, daemon=True).start()
