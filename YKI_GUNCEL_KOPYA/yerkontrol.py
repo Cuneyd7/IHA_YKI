@@ -1167,11 +1167,12 @@ def telemetry_ui_loop():
         _sv_set("mamp", f"{D.get('motor_current', 0.0):.1f} A")
         _sv_set("thr",  f"{t_pct} %")
 
-        vc = "#10B981" if b_v > 14.0 else ("#F59E0B" if b_v > 12.5 else "#f43f5e")
+        # OPTİMİZASYON: Tüm dinamik renk değişimleri kapatıldı (Tam Siyah-Beyaz için)
+        vc = "#FFFFFF"
         if getattr(lbl_vlt, "_last_col", "") != vc:
             lbl_vlt.configure(text_color=vc); lbl_bvolt.configure(text_color=vc); lbl_vlt._last_col = vc
 
-        pc = "#10B981" if b_pct > 50 else ("#F59E0B" if b_pct > 20 else "#f43f5e")
+        pc = "#FFFFFF"
         if getattr(batt_bar_fill, "_last_col", "") != pc:
             batt_bar_fill.configure(fg_color=pc); batt_bar_fill._last_col = pc
 
