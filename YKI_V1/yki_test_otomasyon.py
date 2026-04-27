@@ -29,7 +29,7 @@ def test_1_login():
     payload = {"kadi": "takimkadi", "sifre": "sifre"}
     try:
         response = session.post(f"{BASE_URL}/api/giris", json=payload, timeout=5)
-        if response.status_code == 200 and response.text.isdigit():
+        if response.status_code == 200 and response.text.strip().isdigit():
             log_success(f"Giriş yapıldı. Takım No: {response.text}")
             return True
         else:
