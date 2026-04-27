@@ -105,9 +105,9 @@ def test_3_telemetry_types_and_logic():
         
         fast_resp = session.post(f"{BASE_URL}/api/telemetri_gonder", json=telem_packet)
         if fast_resp.status_code == 400:
-            log_success("KURAL DOĞRULANDI: Sunucu hızlı istekleri (2 Hz+) başarıyla reddetti (400).")
+            log_success("KURAL DOĞRULANDI: Sunucu hızlı istekleri (1 Hz) başarıyla reddetti (400).")
         else:
-            log_error(f"KURAL İHLALİ: Sunucu çok hızlı gelen isteklere 400 dönmedi! Kod: {fast_resp.status_code}")
+            log_error(f"KURAL İHLALİ: Sunucu hızlı isteğe 400 dönmedi! Kod: {fast_resp.status_code}, Cevap: {fast_resp.text}")
     except Exception as e:
         log_error(f"Hata: {e}")
 

@@ -40,10 +40,11 @@ def telemetri():
     t_no = veri.get("takim_numarasi", 0)
     simdi = _time.time()
     
-    # 1 Hz Kuralı Denetimi (Örn: 0.5 saniyeden kısa aralıklar hata döndürür)
+    # 1 Hz Kuralı Denetimi (Örn: 2.0 saniyeden kısa aralıklar hata döndürür)
     if t_no in son_telemetri_zamani:
         fark = simdi - son_telemetri_zamani[t_no]
-        if fark < 0.5: # 2 Hz tolerans sınırı
+        if fark < 2.0: 
+            print(f"  [!] HIZ SINIRI IHLALI: Takim {t_no}, Fark: {fark:.3f}s")
             return jsonify("Hata: 1 Hz Kurali Ihlali"), 400
     
     son_telemetri_zamani[t_no] = simdi
