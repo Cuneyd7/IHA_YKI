@@ -712,8 +712,7 @@ top = ctk.CTkFrame(app, height=60, fg_color="#02050e", corner_radius=0)
 top.pack(side="top", fill="x")
 top.grid_columnconfigure(1, weight=1)
 
-ctk.CTkLabel(top, text="  ❖  KARAN İHA YER K
- ❖  ", font=FB, text_color="#FFFFFF").pack(side="left", padx=20)
+ctk.CTkLabel(top, text="  ❖  KARAN İHA YER KONTROL ❖  ", font=FB, text_color="#FFFFFF").pack(side="left", padx=20)
 
 tab_bar = ctk.CTkFrame(top, fg_color="transparent")
 tab_bar.pack(side="right", padx=10, pady=8)
