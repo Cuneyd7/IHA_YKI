@@ -859,6 +859,8 @@ def _takeoff(alt=50):
     _mav_bg(lambda: baglanti.mav.command_long_send(baglanti.target_system, baglanti.target_component, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0,0,0,0,0,0, alt))
 
 # UI-REVİZYON: Alt Komut Barı (Action Bar) Hiyerarşisi ve Semantik Renkler
+_FKB = ctk.CTkFont(family="Consolas", size=13, weight="bold")
+
 ctrl_bar = ctk.CTkFrame(frame3d, fg_color="#0a1220", corner_radius=12, border_width=0)
 ctrl_bar.pack(fill="x", side="bottom", padx=10, pady=10)
 ctrl_bar.pack_propagate(False)
@@ -868,18 +870,17 @@ for i in range(5): ctrl_bar.grid_columnconfigure(i, weight=1)
 
 # Dinamik Buton Güncelleme (Mod Renkleri)
 def update_action_bar():
-    m = D.get("mode", "---").upper()
-    is_armed = False # Bu değer D içinden okunmalı, örnek amaçlı
-    
-    # ARM butonu hiyerarşisi
-    arm_col = "#ef4444" if is_armed else "#451a1a"
-    btn_arm.configure(fg_color=arm_col)
-    
-    # Mod butonları hiyerarşisi
-    modes = {"AUTO": btn_auto, "GUIDED": btn_guided, "LOITER": btn_loiter, "RTL": btn_rtl}
-    for name, btn in modes.items():
-        if name in m: btn.configure(fg_color="#1E3A8A", text_color="#FFFFFF")
-        else: btn.configure(fg_color="transparent", text_color="#94a3b8")
+    try:
+        m = D.get("mode", "---").upper()
+        # Mod butonları hiyerarşisi (Seçili mod mavi, diğerleri şeffaf)
+        # Sözlüğü fonksiyon içinde her seferinde kuruyoruz (NameError önlemi)
+        modes = {"AUTO": btn_auto, "GUIDED": btn_guided, "LOITER": btn_loiter, "RTL": btn_rtl}
+        for name, btn in modes.items():
+            try:
+                if name in m: btn.configure(fg_color="#1E3A8A", text_color="#FFFFFF")
+                else: btn.configure(fg_color="transparent", text_color="#94a3b8")
+            except: pass
+    except: pass
     app.after(500, update_action_bar)
 
 btn_arm = ctk.CTkButton(ctrl_bar, text="🔓 ARM", font=_FKB, command=_arm)
