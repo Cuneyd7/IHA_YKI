@@ -813,7 +813,7 @@ _FKB = ctk.CTkFont(family="Consolas", size=13, weight="bold")
 # Satır 1
 ctk.CTkButton(ctrl_bar, text="🔓 ARM", fg_color="#e63946", hover_color="#c1121f", font=_FKB, text_color="#f1faee", command=_arm).grid(row=0, column=0, padx=6, pady=(8,4), sticky="ew")
 ctk.CTkButton(ctrl_bar, text="✈ AUTO", fg_color="#457b9d", hover_color="#1d3557", font=_FKB, text_color="#f1faee", command=lambda:_set_mode("AUTO")).grid(row=0, column=1, padx=6, pady=(8,4), sticky="ew")
-ctk.CTkLabel(ctrl_bar, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#f1faee", fg_color="#1d3557", corner_radius=8, border_width=1, border_color="#457b9d").grid(row=0, column=2, rowspan=2, padx=12, pady=8, sticky="nsew")
+ctk.CTkLabel(ctrl_bar, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#f1faee", fg_color="#1d3557", corner_radius=8).grid(row=0, column=2, rowspan=2, padx=12, pady=8, sticky="nsew")
 ctk.CTkButton(ctrl_bar, text="⟳ LOITER", fg_color="#457b9d", hover_color="#1d3557", font=_FKB, text_color="#f1faee", command=lambda:_set_mode("LOITER")).grid(row=0, column=3, padx=6, pady=(8,4), sticky="ew")
 ctk.CTkButton(ctrl_bar, text="⬆ TAKEOFF", fg_color="#457b9d", hover_color="#1d3557", font=_FKB, text_color="#f1faee", command=lambda:_takeoff(50)).grid(row=0, column=4, padx=6, pady=(8,4), sticky="ew")
 
