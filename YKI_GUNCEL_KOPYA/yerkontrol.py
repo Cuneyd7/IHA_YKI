@@ -811,17 +811,17 @@ ctrl_bar.grid_rowconfigure(0, weight=1); ctrl_bar.grid_rowconfigure(1, weight=1)
 _FKB = ctk.CTkFont(family="Consolas", size=13, weight="bold")
 
 # Satır 1
-ctk.CTkButton(ctrl_bar, text="🔓 ARM", fg_color="#14532D", hover_color="#15803d", font=_FKB, text_color="#86efac", command=_arm).grid(row=0, column=0, padx=6, pady=(8,4), sticky="ew")
-ctk.CTkButton(ctrl_bar, text="✈ AUTO", fg_color="#1e3a5f", hover_color="#2563eb", font=_FKB, text_color="#e2e8f0", command=lambda:_set_mode("AUTO")).grid(row=0, column=1, padx=6, pady=(8,4), sticky="ew")
-ctk.CTkLabel(ctrl_bar, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF", fg_color="#04101a", corner_radius=8).grid(row=0, column=2, rowspan=2, padx=12, pady=8, sticky="nsew")
-ctk.CTkButton(ctrl_bar, text="⟳ LOITER", fg_color="#064E3B", hover_color="#059669", font=_FKB, text_color="#e2e8f0", command=lambda:_set_mode("LOITER")).grid(row=0, column=3, padx=6, pady=(8,4), sticky="ew")
-ctk.CTkButton(ctrl_bar, text="⬆ TAKEOFF", fg_color="#2e1065", hover_color="#7c3aed", font=_FKB, text_color="#e2e8f0", command=lambda:_takeoff(50)).grid(row=0, column=4, padx=6, pady=(8,4), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="🔓 ARM", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=_arm).grid(row=0, column=0, padx=6, pady=(8,4), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="✈ AUTO", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("AUTO")).grid(row=0, column=1, padx=6, pady=(8,4), sticky="ew")
+ctk.CTkLabel(ctrl_bar, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF", fg_color="#000000", corner_radius=8).grid(row=0, column=2, rowspan=2, padx=12, pady=8, sticky="nsew")
+ctk.CTkButton(ctrl_bar, text="⟳ LOITER", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("LOITER")).grid(row=0, column=3, padx=6, pady=(8,4), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="⬆ TAKEOFF", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_takeoff(50)).grid(row=0, column=4, padx=6, pady=(8,4), sticky="ew")
 
 # Satır 2
-ctk.CTkButton(ctrl_bar, text="🔒 DISARM", fg_color="#7f1d1d", hover_color="#b91c1c", font=_FKB, text_color="#fca5a5", command=_disarm).grid(row=1, column=0, padx=6, pady=(4,8), sticky="ew")
-ctk.CTkButton(ctrl_bar, text="🎯 GUIDED", fg_color="#1e3a5f", hover_color="#2563eb", font=_FKB, text_color="#e2e8f0", command=lambda:_set_mode("GUIDED")).grid(row=1, column=1, padx=6, pady=(4,8), sticky="ew")
-ctk.CTkButton(ctrl_bar, text="🏠 RTL", fg_color="#7c2d12", hover_color="#c2410c", font=_FKB, text_color="#e2e8f0", command=lambda:_set_mode("RTL")).grid(row=1, column=3, padx=6, pady=(4,8), sticky="ew")
-ctk.CTkButton(ctrl_bar, text="⬇ LAND", fg_color="#4c1d95", hover_color="#6d28d9", font=_FKB, text_color="#e2e8f0", command=lambda:_set_mode("LAND")).grid(row=1, column=4, padx=6, pady=(4,8), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="🔒 DISARM", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=_disarm).grid(row=1, column=0, padx=6, pady=(4,8), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="🎯 GUIDED", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("GUIDED")).grid(row=1, column=1, padx=6, pady=(4,8), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="🏠 RTL", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("RTL")).grid(row=1, column=3, padx=6, pady=(4,8), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="⬇ LAND", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("LAND")).grid(row=1, column=4, padx=6, pady=(4,8), sticky="ew")
 
 if OPENGL_OK:
     lbl_hud = tk.Label(frame3d, bg="#040810"); lbl_hud.pack(fill="both", expand=True, padx=2, pady=(8,2))
