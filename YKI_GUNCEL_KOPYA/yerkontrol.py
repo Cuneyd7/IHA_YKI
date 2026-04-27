@@ -880,20 +880,21 @@ def _sb(w):
 _vp.bind("<MouseWheel>", _mw); _vp.bind("<Button-4>", _mw); _vp.bind("<Button-5>", _mw)
 app.after(600, lambda: _sb(right))
 
-# OPTİMİZASYON: Ghost (Siyah & Beyaz) Teması
-BCOLS = {"#38BDF8": "#000000", "#60A5FA": "#000000", "#00D1FF": "#000000", "#1E40AF": "#000000", "#3B82F6": "#000000", "#93C5FD": "#000000"}
-HCOLS = {"#38BDF8": "#000000", "#60A5FA": "#000000", "#00D1FF": "#000000", "#1E40AF": "#000000", "#3B82F6": "#000000", "#93C5FD": "#000000"}
+# Nordic Tech Palette (Professional Aviation Theme)
+BCOLS = {"#38BDF8": "#457b9d", "#60A5FA": "#457b9d", "#00D1FF": "#457b9d", "#1E40AF": "#457b9d", "#3B82F6": "#457b9d", "#93C5FD": "#457b9d"}
+HCOLS = {"#38BDF8": "#1d3557", "#60A5FA": "#1d3557", "#00D1FF": "#1d3557", "#1E40AF": "#1d3557", "#3B82F6": "#1d3557", "#93C5FD": "#1d3557"}
 SECTION_FRAMES = []
 
 def section(parent, title, color, row):
-    bc = BCOLS.get(color, "#2a3850"); hc = HCOLS.get(color, "#101e30")
-    card = ctk.CTkFrame(parent, corner_radius=10, fg_color="#0d1829", border_width=1, border_color=bc)
+    bc = "#457b9d"
+    hc = "#1d3557"
+    card = ctk.CTkFrame(parent, corner_radius=10, fg_color="#1d3557", border_width=1, border_color=bc)
     card.grid(row=row, column=0, padx=12, pady=6, sticky="ew")
     card._orig_bc = bc; card._orig_hc = hc; card._is_drag_target = False
     
     hdr = ctk.CTkFrame(card, height=30, corner_radius=8, fg_color=hc, cursor="fleur")
     hdr.pack(fill="x", padx=3, pady=(3,0))
-    lbl = ctk.CTkLabel(hdr, text=f"  {title}", font=FK, text_color=color, anchor="w", cursor="fleur")
+    lbl = ctk.CTkLabel(hdr, text=f"  {title}", font=FK, text_color="#f1faee", anchor="w", cursor="fleur")
     lbl.pack(side="left", pady=4, padx=6)
     SECTION_FRAMES.append(card)
     
@@ -928,15 +929,15 @@ def section(parent, title, color, row):
         _w.bind("<MouseWheel>", _mw, add="+"); _w.bind("<Button-4>", _mw, add="+"); _w.bind("<Button-5>", _mw, add="+")
     return card
 
-def data_row(parent, label, str_var, lcolor="#00ffcc", vsize=22):
+def data_row(parent, label, str_var, lcolor="#f1faee", vsize=22):
     rf = ctk.CTkFrame(parent, fg_color="transparent"); rf.pack(fill="x", padx=16, pady=3)
-    l1 = ctk.CTkLabel(rf, text=label, font=FL, text_color="#94a3b8", anchor="w"); l1.pack(side="left")
+    l1 = ctk.CTkLabel(rf, text=label, font=FL, text_color="#a8dadc", anchor="w"); l1.pack(side="left")
     vl = ctk.CTkLabel(rf, textvariable=str_var, font=ctk.CTkFont(family="Consolas", size=vsize, weight="bold"), text_color=lcolor, anchor="e"); vl.pack(side="right")
     for _w in (rf, l1, vl): _w.bind("<MouseWheel>", _mw, add="+"); _w.bind("<Button-4>", _mw, add="+"); _w.bind("<Button-5>", _mw, add="+")
     return vl
 
 def div(parent):
-    d = ctk.CTkFrame(parent, height=1, fg_color="#1e293b"); d.pack(fill="x", padx=16, pady=2)
+    d = ctk.CTkFrame(parent, height=1, fg_color="#457b9d"); d.pack(fill="x", padx=16, pady=2)
     d.bind("<MouseWheel>", _mw, add="+"); d.bind("<Button-4>", _mw, add="+"); d.bind("<Button-5>", _mw, add="+")
 
 c1 = section(right, "▸  YÖNELİM AÇILARI", "#38BDF8", 0)
