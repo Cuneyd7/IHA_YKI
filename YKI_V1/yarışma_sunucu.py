@@ -48,7 +48,14 @@ def telemetri():
             return jsonify("Hata: 1 Hz Kurali Ihlali"), 400
     
     son_telemetri_zamani[t_no] = simdi
-    print(f"[TELEMETRİ GELDİ] Takım: {t_no} | Konum: {veri.get('iha_enlem'):.6f}, {veri.get('iha_boylam'):.6f} | İrtifa: {veri.get('iha_irtifa')}m | Hız: {veri.get('iha_hiz')}m/s | Batarya: {veri.get('iha_batarya')}% | Mod: {'OTONOM' if veri.get('iha_otonom')==1 else 'MANUEL'} | Yön: {veri.get('iha_yonelme')}°", flush=True)
+    
+    # TÜM PAKETİ GÖRSEL OLARAK YAZDIR
+    import json
+    print("\n" + "═"*60)
+    print(f" 📡 [TELEMETRİ PAKETİ] Takım #{t_no} | {datetime.now().strftime('%H:%M:%S')}")
+    print("─"*60)
+    print(json.dumps(veri, indent=4, ensure_ascii=False))
+    print("═"*60 + "\n", flush=True)
     import sys; sys.stdout.flush()
     
     cevap = {
