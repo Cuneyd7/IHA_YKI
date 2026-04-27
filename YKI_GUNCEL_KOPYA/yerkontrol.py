@@ -1538,15 +1538,7 @@ def _panel_update():
 
     # Verileri güncelle
     try:
-        L = _W["labels"]; P = _W["psv"]
-        if "lat" in L:
-            L["lat"].configure(text=f"{D.get('lat',0.0):.5f} °")
-            L["lon"].configure(text=f"{D.get('lon',0.0):.5f} °")
-            L["alt"].configure(text=f"{_agl_val[0]:.1f} m")
-            L["hdg"].configure(text=f"{D.get('heading',0)} °")
-            L["mode"].configure(text=D.get("mode","---"))
-            L["batt"].configure(text=f"{D.get('batt_pct',0)} %")
-
+        P = _W["psv"]
         P["enlem"].set(f"{D.get('lat',0.0):.6f}")
         P["boylam"].set(f"{D.get('lon',0.0):.6f}")
         P["irtifa"].set(f"{_agl_val[0]:.1f} m")
@@ -1563,8 +1555,8 @@ def _panel_update():
         if "diger_yaz_fn" in _W: _W["diger_yaz_fn"](diger_takimlar[0])
 
         log_tb = _W["log_tb"]
-        if log_tb:
-            _log_yeni = "\n".join(_panel_log[-25:])
+        if log_tb and log_tb.winfo_exists():
+            _log_yeni = "\n".join(_panel_log[-20:])
             if not hasattr(_panel_update, "_son_log") or _panel_update._son_log != _log_yeni:
                 _panel_update._son_log = _log_yeni
                 log_tb.configure(state="normal")
