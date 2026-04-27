@@ -1483,7 +1483,7 @@ def _build_panel(pwin=None):
     pright = ctk.CTkFrame(pmain, corner_radius=12, fg_color="#070f1e", border_width=1, border_color="#1e3a5f")
     pright.grid(row=0, column=2, sticky="nsew"); pright.grid_columnconfigure(0, weight=1)
 
-    ctk.CTkLabel(pright, text="  ⚡ OPERASYONLAR", font=pFK, text_color="#facc15", anchor="w").grid(row=0, column=0, padx=12, pady=(8,4), sticky="w")
+    ctk.CTkLabel(pright, text=" OTONOM GÖREVLER", font=pFK, text_color="#facc15", anchor="w").grid(row=0, column=0, padx=12, pady=(8,4), sticky="w")
 
     ck = pcard(pright, "▸  KİLİTLENME BİLGİSİ", "#f43f5e", 1)
     otonom_k = tk.IntVar(value=1)
