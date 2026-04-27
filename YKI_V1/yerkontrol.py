@@ -776,9 +776,11 @@ ctk.CTkLabel(map_hdr_row, text="[ CANLI UYDU HARİTASI ]", font=FK, text_color="
 
 def toggle_map_mode(event=None):
     if MAP_ODAK_MODU[0] == "IHA":
-        MAP_ODAK_MODU[0] = "SERBEST"; lbl_map_mod.configure(text="✦ SERBEST", text_color="#FFFFFF", fg_color="#333333")
+        MAP_ODAK_MODU[0] = "SERBEST"; lbl_map_mod.configure(text="✦ SERBEST", text_color="#facc15", fg_color="#1e1b4b")
+        print("[SİSTEM] Harita Serbest Modda - İstediğiniz yere gidebilirsiniz.")
     else:
-        MAP_ODAK_MODU[0] = "IHA"; lbl_map_mod.configure(text="✦ İHA KİLİT", text_color="#FFFFFF", fg_color="#000000")
+        MAP_ODAK_MODU[0] = "IHA"; lbl_map_mod.configure(text="✦ İHA KİLİT", text_color="#10b981", fg_color="#064e3b")
+        print("[SİSTEM] Harita İHA'ya Kilitlendi.")
 
 lbl_map_mod = ctk.CTkLabel(map_hdr_row, text="✦ İHA KİLİT", font=ctk.CTkFont(family="Consolas", size=11, weight="bold"), text_color="#FFFFFF", fg_color="#000000", corner_radius=5, cursor="hand2", padx=6, pady=2)
 lbl_map_mod.pack(side="right", padx=6, pady=3)
@@ -1243,8 +1245,9 @@ def map_loop():
                 _last_set_pos = getattr(map_loop, '_last_set_pos', _curr_map_pos)
                 _map_dist = math.sqrt((_curr_map_pos[0]-_last_set_pos[0])**2 + (_curr_map_pos[1]-_last_set_pos[1])**2)
                 
-                if _map_dist > 0.0005 and MAP_ODAK_MODU[0] == "IHA":
-                    toggle_map_mode() # Otomatik serbest moda geç
+                if _map_dist > 0.0001 and MAP_ODAK_MODU[0] == "IHA":
+                    print(f"[NAV] Manuel hareket algılandı (Fark: {_map_dist:.6f}), kilit açılıyor...")
+                    toggle_map_mode()
                 
                 # Sadece İHA KİLİT modu aktifse haritayı merkezle
                 if MAP_ODAK_MODU[0] == "IHA":
