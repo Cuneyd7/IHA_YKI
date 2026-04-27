@@ -63,25 +63,25 @@ def telemetri():
         "konumBilgileri": [
             {
                 "takim_numarasi": 2,
-                "iha_enlem": 41.5100365,
-                "iha_boylam": 36.11837,
-                "iha_irtifa": 44.0,
-                "iha_dikilme": 24.0,
-                "iha_yonelme": 277.0,
-                "iha_yatis": -37.0,
-                "iha_hizi": 40.0,
-                "zaman_farki": 248
+                "iha_enlem": 41.102500,
+                "iha_boylam": 29.022500,
+                "iha_irtifa": 45.0,
+                "iha_dikilme": 5.0,
+                "iha_yonelme": 45.0,
+                "iha_yatis": 10.0,
+                "iha_hizi": 35.0,
+                "zaman_farki": 150
             },
             {
                 "takim_numarasi": 3,
-                "iha_enlem": 41.5123138,
-                "iha_boylam": 36.12,
-                "iha_irtifa": 32.0,
-                "iha_dikilme": 9.0,
-                "iha_yonelme": 13,
-                "iha_yatis": -30.0,
-                "iha_hizi": 45.0,
-                "zaman_farki": 30
+                "iha_enlem": 41.101500,
+                "iha_boylam": 29.021000,
+                "iha_irtifa": 38.0,
+                "iha_dikilme": -2.0,
+                "iha_yonelme": 180.0,
+                "iha_yatis": -5.0,
+                "iha_hizi": 42.0,
+                "zaman_farki": 80
             }
         ]
     }
@@ -103,7 +103,7 @@ def kamikaze():
 @app.route('/api/qr_koordinati', methods=['GET'])
 def qr_koordinati():
     print("[QR KOORDİNATI SORGULANDI]")
-    return jsonify({"qrEnlem": 41.51238882, "qrBoylam": 36.11935778}), 200
+    return jsonify({"qrEnlem": 41.102200, "qrBoylam": 29.022000}), 200
 
 # 7. Hava Savunma Sistemi (HSS)
 @app.route('/api/hss_koordinatlari', methods=['GET'])
@@ -112,9 +112,8 @@ def hss():
     cevap = {
         "sunucusaati": get_saat(),
         "hss_koordinat_bilgileri": [
-            {"id": 0, "hssEnlem": 40.23260922, "hssBoylam": 29.00573015, "hssYaricap": 50},
-            {"id": 1, "hssEnlem": 40.23351019, "hssBoylam": 28.99976492, "hssYaricap": 50},
-            {"id": 2, "hssEnlem": 40.23105297, "hssBoylam": 29.00744677, "hssYaricap": 75}
+            {"id": 0, "hssEnlem": 41.103000, "hssBoylam": 29.023000, "hssYaricap": 100},
+            {"id": 1, "hssEnlem": 41.101000, "hssBoylam": 29.021000, "hssYaricap": 120}
         ]
     }
     return jsonify(cevap), 200

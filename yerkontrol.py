@@ -402,6 +402,18 @@ def ucak_base_ciz():
     draw.ellipse([cx-int(2*SS), cy-fh+int(1*SS), cx+int(2*SS), cy-fh+int(5*SS)], fill="#ef4444")
     return img.resize((64, 64), Image.LANCZOS)
 
+def ucak_rakip_ciz():
+    if not EKSTRA_MODULLER_OK: return None
+    SS = 4; S = 64 * SS; cx, cy = S // 2, S // 2
+    img  = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    fw, fh = int(4*SS), int(30*SS)
+    draw.ellipse([cx-fw, cy-fh, cx+fw, cy+fh], fill="#fbbf24", outline="#b45309", width=SS)
+    draw.polygon([(cx - int(3*SS), cy - int(4*SS)), (cx - int(30*SS), cy + int(8*SS)), (cx - int(29*SS), cy + int(13*SS)), (cx - int(2*SS), cy + int(2*SS))], fill="#d97706", outline="#b45309", width=SS)
+    draw.polygon([(cx + int(3*SS), cy - int(4*SS)), (cx + int(30*SS), cy + int(8*SS)), (cx + int(29*SS), cy + int(13*SS)), (cx + int(2*SS), cy + int(2*SS))], fill="#d97706", outline="#b45309", width=SS)
+    draw.ellipse([cx-int(2*SS), cy-fh+int(1*SS), cx+int(2*SS), cy-fh+int(5*SS)], fill="#f97316")
+    return img.resize((64, 64), Image.LANCZOS)
+
 def ucak_ikon_onbellegi_olustur(base_img):
     if base_img is None: return {}
     cache = {}
@@ -447,7 +459,9 @@ def haritaya_qr_ciz(lat, lon):
 
 if EKSTRA_MODULLER_OK:
     UCAK_BASE_IMG   = ucak_base_ciz()   
-    UCAK_IKON_CACHE = {}                
+    UCAK_RAKIP_IMG  = ucak_rakip_ciz()
+    UCAK_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_BASE_IMG)
+    RAKIP_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_RAKIP_IMG)
     UCAK_TK_IMG     = None
     ucak_marker     = None
 
@@ -1301,13 +1315,16 @@ def map_loop():
                 t_no = t.get("takim_numarasi")
                 if not t_no: continue
                 guncel_takimlar.add(t_no)
-                t_lat = t.get("iha_enlem", 0); t_lon = t.get("iha_boylam", 0)
+                t_lat = t.get("iha_enlem", 0); t_lon = t.get("iha_boylam", 0); t_hdg = int(t.get("iha_yonelme", 0)) % 360
+                r_ikon = RAKIP_IKON_CACHE.get(t_hdg)
                 if t_no in RAKIP_MARKER_NESNELERI:
-                    try: RAKIP_MARKER_NESNELERI[t_no].set_position(t_lat, t_lon)
+                    try: 
+                        RAKIP_MARKER_NESNELERI[t_no].set_position(t_lat, t_lon)
+                        RAKIP_MARKER_NESNELERI[t_no].change_icon(r_ikon)
                     except: pass
                 else:
                     try:
-                        m = map_widget.set_marker(t_lat, t_lon, text=f"Takım {t_no}")
+                        m = map_widget.set_marker(t_lat, t_lon, text=f"Rakip {t_no}", icon=r_ikon)
                         RAKIP_MARKER_NESNELERI[t_no] = m
                     except: pass
             silinecekler = set(RAKIP_MARKER_NESNELERI.keys()) - guncel_takimlar
