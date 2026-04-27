@@ -934,72 +934,32 @@ _win = _vp.create_window((0, 0), window=right, anchor="nw")
 _vp.bind("<Configure>", lambda e: _vp.itemconfig(_win, width=e.width))
 right.bind("<Configure>", lambda e: _vp.configure(scrollregion=_vp.bbox("all")))
 
-_sv  = [0.0]; _sp  = [0.0]; _tok = [None]
-def _tick():
-    v = _sv[0]
-    if abs(v) < 1e-5: _sv[0] = 0.0; _tok[0] = None; return
-    _sp[0] = max(0.0, min(1.0, _sp[0] + v))
-    _vp.yview_moveto(_sp[0])   
-    _sv[0] *= 0.82             
-    _tok[0] = app.after(8, _tick)
-
-def _sync_pos(e=None): top, _ = _vp.yview(); _sp[0] = top
-_vp.bind("<<ScrollbarScroll>>", _sync_pos, add="+")
-
-def _content_height():
-    try:
-        bb = _vp.bbox("all")
-        return bb[3] - bb[1] if bb else 1
-    except: return 1
-
-def _mw(e):
-    d = getattr(e, 'delta', 0)
-    if d == 0: d = -120 if getattr(e,'num',0)==5 else 120
-    ch = _content_height()
-    impulse = (-d / 120.0) * 25.0 / max(ch, 1)
-    _sv[0] = max(-0.06, min(0.06, _sv[0] + impulse))
-    top, _ = _vp.yview(); _sp[0] = top
-    if _tok[0] is None: _tok[0] = app.after(8, _tick)
-
-def _sb(w):
-    try: w.bind("<MouseWheel>", _mw, add="+"); w.bind("<Button-4>", _mw, add="+"); w.bind("<Button-5>", _mw, add="+")
-    except: pass
-    for c in w.winfo_children(): _sb(c)
-
-_vp.bind("<MouseWheel>", _mw); _vp.bind("<Button-4>", _mw); _vp.bind("<Button-5>", _mw)
-app.after(600, lambda: _sb(right))
-
-# OPTİMİZASYON: Ghost (Siyah & Beyaz) Teması
-BCOLS = {"#38BDF8": "#000000", "#60A5FA": "#000000", "#00D1FF": "#000000", "#1E40AF": "#000000", "#3B82F6": "#000000", "#93C5FD": "#000000"}
-HCOLS = {"#38BDF8": "#000000", "#60A5FA": "#000000", "#00D1FF": "#000000", "#1E40AF": "#000000", "#3B82F6": "#000000", "#93C5FD": "#000000"}
+# UI-REVİZYON: Stabil Card UI ve Veri Yapısı
 SECTION_FRAMES = []
 
-# UI-REVİZYON: Card UI Mantığı ve Sürükle-Bırak Koruması
 def section(parent, title, color, row):
-    bc = "#1e293b" 
-    hc = "#121b2d"
     card = ctk.CTkFrame(parent, corner_radius=12, fg_color="#0a1220", border_width=0)
     card.grid(row=row, column=0, padx=12, pady=6, sticky="ew")
-    card._orig_bc = bc; card._orig_hc = hc; card._is_drag_target = False
+    card._orig_hc = "#121b2d"
     
-    hdr = ctk.CTkFrame(card, height=32, corner_radius=10, fg_color=hc, cursor="fleur")
+    hdr = ctk.CTkFrame(card, height=32, corner_radius=10, fg_color="#121b2d", cursor="fleur")
     hdr.pack(fill="x", padx=4, pady=4)
     hdr.pack_propagate(False)
     lbl = ctk.CTkLabel(hdr, text=f"  {title}", font=FU, text_color="#FFFFFF", anchor="w")
     lbl.pack(side="left", padx=10)
     SECTION_FRAMES.append(card)
     
-    # Sürükle-bırak mantığı korunuyor
-    def drag_start(e):
-        card.lift()
-        card.configure(border_width=1, border_color="#ffffff")
-    card.bind("<Button-1>", drag_start) # Basitleştirilmiş koruma
+    def _mw(e): # MouseWheel koruması
+        try: _vp.yview_scroll(int(-1*(e.delta/120)), "units")
+        except: pass
+
+    for _w in (hdr, lbl, card):
+        _w.bind("<MouseWheel>", _mw, add="+")
     return card
 
 def data_row(parent, label, svar, vsize=18, show_progress=False):
     r = ctk.CTkFrame(parent, fg_color="transparent")
     r.pack(fill="x", padx=16, pady=2)
-    # UI-REVİZYON: Veri Hizalama ve Birim Ayrıştırma
     ctk.CTkLabel(r, text=label, font=FU, text_color="#94a3b8").pack(side="left")
     
     val_frame = ctk.CTkFrame(r, fg_color="transparent")
@@ -1014,11 +974,6 @@ def data_row(parent, label, svar, vsize=18, show_progress=False):
         bar.set(0.0)
         return bar
     return None
-        card.configure(border_color=card._orig_bc, border_width=1); hdr.configure(fg_color=card._orig_hc)
-        current_row = int(card.grid_info()['row'])
-        for other in SECTION_FRAMES:
-            if getattr(other, '_is_drag_target', False):
-                target_row = int(other.grid_info()['row'])
                 card.grid(row=target_row); other.grid(row=current_row)
                 other.configure(border_color=other._orig_bc, border_width=1); other._is_drag_target = False
                 break
