@@ -898,15 +898,10 @@ btn_disarm = ctk.CTkButton(ctrl_bar, text="🔒 DISARM", fg_color="#1a1a1a", fon
 btn_disarm.grid(row=1, column=0, padx=5, pady=(0,10), sticky="ew")
 
 btn_guided = ctk.CTkButton(ctrl_bar, text="🎯 GUIDED", font=_FKB, command=lambda:_set_mode("GUIDED"))
-btn_guided.grid(row=1, column=1, padx=5, pady=(0,10), sticky="ew")
-
-btn_rtl = ctk.CTkButton(ctrl_bar, text="🏠 RTL", font=_FKB, command=lambda:_set_mode("RTL"))
-btn_rtl.grid(row=1, column=3, padx=5, pady=(0,10), sticky="ew")
-
 btn_land = ctk.CTkButton(ctrl_bar, text="🛬 LAND", fg_color="#334155", font=_FKB, command=lambda:_set_mode("LAND"))
 btn_land.grid(row=1, column=4, padx=5, pady=(0,10), sticky="ew")
 
-# HUD Ortasındaki Mod Etiketi (HUD katmanına taşınacak veya üstte sabitlenecek)
+# HUD Ortasındaki Mod Etiketi
 lbl_hud_mode = ctk.CTkLabel(frame3d, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=24, weight="bold"), text_color="#00FFCC", fg_color="transparent")
 lbl_hud_mode.place(relx=0.5, rely=0.1, anchor="center")
 
@@ -934,22 +929,23 @@ _win = _vp.create_window((0, 0), window=right, anchor="nw")
 _vp.bind("<Configure>", lambda e: _vp.itemconfig(_win, width=e.width))
 right.bind("<Configure>", lambda e: _vp.configure(scrollregion=_vp.bbox("all")))
 
-# UI-REVİZYON: Stabil Card UI ve Veri Yapısı
+# ── UI FONKSİYONLARI VE TASARIM SİSTEMİ ────────────────────────────
 SECTION_FRAMES = []
 
 def section(parent, title, color, row):
     card = ctk.CTkFrame(parent, corner_radius=12, fg_color="#0a1220", border_width=0)
     card.grid(row=row, column=0, padx=12, pady=6, sticky="ew")
-    card._orig_hc = "#121b2d"
     
-    hdr = ctk.CTkFrame(card, height=32, corner_radius=10, fg_color="#121b2d", cursor="fleur")
+    hdr = ctk.CTkFrame(card, height=32, corner_radius=10, fg_color="#121b2d")
     hdr.pack(fill="x", padx=4, pady=4)
     hdr.pack_propagate(False)
+    
     lbl = ctk.CTkLabel(hdr, text=f"  {title}", font=FU, text_color="#FFFFFF", anchor="w")
     lbl.pack(side="left", padx=10)
+    
     SECTION_FRAMES.append(card)
     
-    def _mw(e): # MouseWheel koruması
+    def _mw(e):
         try: _vp.yview_scroll(int(-1*(e.delta/120)), "units")
         except: pass
 
@@ -960,6 +956,7 @@ def section(parent, title, color, row):
 def data_row(parent, label, svar, vsize=18, show_progress=False):
     r = ctk.CTkFrame(parent, fg_color="transparent")
     r.pack(fill="x", padx=16, pady=2)
+    
     ctk.CTkLabel(r, text=label, font=FU, text_color="#94a3b8").pack(side="left")
     
     val_frame = ctk.CTkFrame(r, fg_color="transparent")
