@@ -44,11 +44,12 @@ def telemetri():
     if t_no in son_telemetri_zamani:
         fark = simdi - son_telemetri_zamani[t_no]
         if fark < 0.5: 
-            print(f"  [!] HIZ SINIRI IHLALI: Takim {t_no}, Fark: {fark:.3f}s")
+            print(f"  [!] HIZ SINIRI IHLALI: Takim {t_no}, Fark: {fark:.3f}s", flush=True)
             return jsonify("Hata: 1 Hz Kurali Ihlali"), 400
     
     son_telemetri_zamani[t_no] = simdi
-    print(f"[TELEMETRİ GELDİ] Enlem: {veri.get('iha_enlem')} | Boylam: {veri.get('iha_boylam')} | İrtifa: {veri.get('iha_irtifa')}m | Batarya: {veri.get('iha_batarya')}%")
+    print(f"[TELEMETRİ GELDİ] Takım: {t_no} | Enlem: {veri.get('iha_enlem')} | Boylam: {veri.get('iha_boylam')} | İrtifa: {veri.get('iha_irtifa')}m", flush=True)
+    import sys; sys.stdout.flush()
     
     cevap = {
         "sunucusaati": get_saat(),
