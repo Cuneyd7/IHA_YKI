@@ -1303,7 +1303,9 @@ def map_loop():
                 try: ucak_marker.change_icon(yeni_ikon); ucak_marker.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
                 except: pass
 
-                map_widget.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
+                if MAP_ODAK_MODU[0] == "IHA":
+                    map_widget.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
+                
                 LAST_MAP_UPDATE_TIME[0] = _now_map
                 map_loop._last_hdg = MAP_SMOOTH_HEADING[0]
 
