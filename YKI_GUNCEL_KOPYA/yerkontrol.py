@@ -1005,26 +1005,29 @@ batt_bot = ctk.CTkFrame(c6, fg_color="transparent"); batt_bot.pack(fill="x", pad
 ctk.CTkLabel(batt_bot, text="Kalan Kapasite", font=FU, text_color="#94a3b8").pack(side="left")
 ctk.CTkLabel(batt_bot, textvariable=SV["bmah"], font=ctk.CTkFont(family="Consolas", size=18, weight="bold"), text_color="#a78bfa").pack(side="right")
 
-# OPTİMİZASYON: Görüntü kısmında video yerine sabit görsel (JPEG/PNG) kullanılır.
+# OPTİMİZASYON: Görüntü kısmında video yerine sabit görsel (test_image.jpeg) kullanılır.
 def _kamera_thread_fn():
     """Arka planda görseli yükler ve Queue'ya basar."""
     try:
-        # Klasör içindeki sabit görseli oku
-        frame = cv2.imread("test_image.jpg")
+        # Klasör içindeki yeni eklenen görseli oku
+        # Kullanıcı 'test_image.jpeg' olarak eklediği için bu ismi hedefliyoruz
+        img_path = "test_image.jpeg"
+        frame = cv2.imread(img_path)
+        
         if frame is not None:
             frame = cv2.resize(frame, (HEDEF_KAMERA_W, HEDEF_KAMERA_H), interpolation=cv2.INTER_NEAREST)
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
             while True:
-                # Sabit görseli kuyruğa bas (Kamera kısmında görünecek)
+                # Görseli kuyruğa bas
                 while not _KAMERA_QUEUE.empty():
                     try: _KAMERA_QUEUE.get_nowait()
                     except: break
                 try: _KAMERA_QUEUE.put_nowait(frame_rgb)
                 except: pass
-                _time.sleep(0.1) # Sabit görüntü olduğu için düşük yenileme hızı yeterli
+                _time.sleep(0.1)
         else:
-            print("HATA: test_image.jpg bulunamadı!")
+            print(f"HATA: {img_path} dosyası cv2 tarafından okunamadı! Lütfen dosya adını ve formatını kontrol edin.")
     except Exception as e: print("Görsel Yükleme Hatası:", e)
 
 if EKSTRA_MODULLER_OK:
