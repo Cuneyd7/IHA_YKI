@@ -933,118 +933,60 @@ right.bind("<Configure>", lambda e: _vp.configure(scrollregion=_vp.bbox("all")))
 SECTION_FRAMES = []
 
 def section(parent, title, color, row):
+    # UI-REVİZYON: Card UI Mantığı (Borderless & Katmanlı Derinlik)
     card = ctk.CTkFrame(parent, corner_radius=12, fg_color="#0a1220", border_width=0)
     card.grid(row=row, column=0, padx=12, pady=6, sticky="ew")
-    
     hdr = ctk.CTkFrame(card, height=32, corner_radius=10, fg_color="#121b2d")
-    hdr.pack(fill="x", padx=4, pady=4)
-    hdr.pack_propagate(False)
-    
+    hdr.pack(fill="x", padx=4, pady=4); hdr.pack_propagate(False)
     lbl = ctk.CTkLabel(hdr, text=f"  {title}", font=FU, text_color="#FFFFFF", anchor="w")
     lbl.pack(side="left", padx=10)
-    
     SECTION_FRAMES.append(card)
-    
     def _mw(e):
         try: _vp.yview_scroll(int(-1*(e.delta/120)), "units")
         except: pass
-
-    for _w in (hdr, lbl, card):
-        _w.bind("<MouseWheel>", _mw, add="+")
+    for _w in (hdr, lbl, card): _w.bind("<MouseWheel>", _mw, add="+")
     return card
 
 def data_row(parent, label, svar, vsize=18, show_progress=False):
-    r = ctk.CTkFrame(parent, fg_color="transparent")
-    r.pack(fill="x", padx=16, pady=2)
-    
+    # UI-REVİZYON: Veri Hizalama ve Progress Bar Entegrasyonu
+    r = ctk.CTkFrame(parent, fg_color="transparent"); r.pack(fill="x", padx=16, pady=2)
     ctk.CTkLabel(r, text=label, font=FU, text_color="#94a3b8").pack(side="left")
-    
-    val_frame = ctk.CTkFrame(r, fg_color="transparent")
-    val_frame.pack(side="right")
-    
-    lbl_val = ctk.CTkLabel(val_frame, textvariable=svar, font=ctk.CTkFont(family="Consolas", size=vsize, weight="bold"), text_color="#FFFFFF", width=90, anchor="e")
-    lbl_val.pack(side="right")
-    
+    val_frame = ctk.CTkFrame(r, fg_color="transparent"); val_frame.pack(side="right")
+    ctk.CTkLabel(val_frame, textvariable=svar, font=ctk.CTkFont(family="Consolas", size=vsize, weight="bold"), text_color="#FFFFFF", width=90, anchor="e").pack(side="right")
     if show_progress:
         bar = ctk.CTkProgressBar(r, width=100, height=6, fg_color="#1a1a1a", progress_color="#38BDF8")
-        bar.pack(side="right", padx=10)
-        bar.set(0.0)
-        return bar
+        bar.pack(side="right", padx=10); bar.set(0.0); return bar
     return None
-                card.grid(row=target_row); other.grid(row=current_row)
-                other.configure(border_color=other._orig_bc, border_width=1); other._is_drag_target = False
-                break
-
-    hdr.bind("<ButtonPress-1>", drag_start); hdr.bind("<B1-Motion>", drag_motion); hdr.bind("<ButtonRelease-1>", drag_stop)
-    lbl.bind("<ButtonPress-1>", drag_start); lbl.bind("<B1-Motion>", drag_motion); lbl.bind("<ButtonRelease-1>", drag_stop)
-    for _w in (hdr, lbl, card):
-        _w.bind("<MouseWheel>", _mw, add="+"); _w.bind("<Button-4>", _mw, add="+"); _w.bind("<Button-5>", _mw, add="+")
-    return card
-
-def data_row(parent, label, str_var, lcolor="#00ffcc", vsize=22):
-    rf = ctk.CTkFrame(parent, fg_color="transparent"); rf.pack(fill="x", padx=16, pady=3)
-    l1 = ctk.CTkLabel(rf, text=label, font=FL, text_color="#94a3b8", anchor="w"); l1.pack(side="left")
-    vl = ctk.CTkLabel(rf, textvariable=str_var, font=ctk.CTkFont(family="Consolas", size=vsize, weight="bold"), text_color=lcolor, anchor="e"); vl.pack(side="right")
-    for _w in (rf, l1, vl): _w.bind("<MouseWheel>", _mw, add="+"); _w.bind("<Button-4>", _mw, add="+"); _w.bind("<Button-5>", _mw, add="+")
-    return vl
 
 def div(parent):
     d = ctk.CTkFrame(parent, height=1, fg_color="#1e293b"); d.pack(fill="x", padx=16, pady=2)
-    d.bind("<MouseWheel>", _mw, add="+"); d.bind("<Button-4>", _mw, add="+"); d.bind("<Button-5>", _mw, add="+")
 
-c1 = section(right, "▸  YÖNELİM AÇILARI", "#38BDF8", 0)
-data_row(c1, "ROLL   (Yatış)", SV["roll"], lcolor="#60A5FA")
-div(c1); data_row(c1, "PITCH  (Yunuslama)", SV["pitch"], lcolor="#60A5FA")
-div(c1); data_row(c1, "YAW    (Sapma)", SV["yaw"], lcolor="#60A5FA")
-ctk.CTkFrame(c1, height=4, fg_color="transparent").pack()
-
-c2 = section(right, "▸  JİROSKOPİK HIZLAR", "#60A5FA", 1)
-data_row(c2, "Roll Hızı", SV["rs"], lcolor="#38BDF8", vsize=18)
-div(c2); data_row(c2, "Pitch Hızı", SV["ps"], lcolor="#38BDF8", vsize=18)
-div(c2); data_row(c2, "Yaw Hızı", SV["ys"], lcolor="#38BDF8", vsize=18)
-ctk.CTkFrame(c2, height=4, fg_color="transparent").pack()
-
-c3 = section(right, "▸  SEYRÜSEFER & HIZ", "#00D1FF", 2)
-data_row(c3, "İrtifa  MSL", SV["alt"], lcolor="#00D1FF")
-div(c3); data_row(c3, "İrtifa  AGL", SV["agl"], lcolor="#93C5FD")
-div(c3); data_row(c3, "Hava Hızı", SV["as"], lcolor="#00D1FF")
-div(c3); data_row(c3, "Yer Hızı", SV["gs"], lcolor="#00D1FF")
-div(c3); data_row(c3, "Pusula", SV["hdg"], lcolor="#00D1FF")
-ctk.CTkFrame(c3, height=4, fg_color="transparent").pack()
-
-# UI-REVİZYON: Telemetri Paneli — Hizalı Veriler ve İlerleme Çubukları
+# ── SAĞ PANEL TELEMETRİ İNŞASI ────────────────────────────────────
 c1 = section(right, "▸  YÖNELİM AÇILARI", "#FFFFFF", 0)
 data_row(c1, "ROLL  (Yatış)", SV["roll"])
 data_row(c1, "PITCH (Yunuslama)", SV["pitch"])
 data_row(c1, "YAW   (Sapma)", SV["yaw"])
 
-c2 = section(right, "▸  JİROSKOPİK HIZLAR", "#FFFFFF", 1)
-data_row(c2, "Roll Hızı", SV["rs"])
-data_row(c2, "Pitch Hızı", SV["ps"])
-data_row(c2, "Yaw Hızı", SV["ys"])
+c2 = section(right, "▸  HIZ & İRTİFA", "#FFFFFF", 1)
+data_row(c2, "Hava Hızı", SV["as"])
+data_row(c2, "İrtifa MSL", SV["alt"])
+data_row(c2, "İrtifa AGL", SV["agl"])
 
-c3 = section(right, "▸  SEYRÜSEFER & HIZ", "#FFFFFF", 2)
-data_row(c3, "İrtifa MSL", SV["alt"])
-data_row(c3, "İrtifa AGL", SV["agl"])
-data_row(c3, "Hava Hızı", SV["as"])
-data_row(c3, "Yer Hızı", SV["gs"])
-data_row(c3, "Pusula", SV["hdg"])
+c3 = section(right, "▸  KONUM & SİSTEM", "#FFFFFF", 2)
+data_row(c3, "Enlem", SV["lat"], vsize=15)
+data_row(c3, "Boylam", SV["lon"], vsize=15)
+sat_bar_p = data_row(c3, "SAT (Uydu)", SV["sat"], show_progress=True)
 
-c4 = section(right, "▸  KONUM & SİSTEM", "#FFFFFF", 3)
-data_row(c4, "Enlem", SV["lat"], vsize=16)
-data_row(c4, "Boylam", SV["lon"], vsize=16)
-sat_bar_p = data_row(c4, "SAT (Uydu)", SV["sat"], show_progress=True)
+c4 = section(right, "▸  MOTOR & GÜÇ", "#FFFFFF", 3)
+rpm_bar_p = data_row(c4, "RPM", SV["rpm"], vsize=20, show_progress=True)
+thr_bar_p = data_row(c4, "THROTTLE", SV["thr"], vsize=20, show_progress=True)
+data_row(c4, "Motor Akımı", SV["mamp"])
 
-c5 = section(right, "▸  MOTOR TELEMETRİSİ", "#FFFFFF", 4)
-rpm_bar_p = data_row(c5, "RPM", SV["rpm"], vsize=20, show_progress=True)
-thr_bar_p = data_row(c5, "THROTTLE", SV["thr"], vsize=20, show_progress=True)
-data_row(c5, "Motor Akımı", SV["mamp"])
-
-c6 = section(right, "▸  BATARYA", "#FFFFFF", 5)
-batt_bar_p = data_row(c6, "BATARYA %", SV["bpct"], show_progress=True)
-data_row(c6, "Gerilim", SV["vlt"])
-data_row(c6, "Akım", SV["bamp"])
-data_row(c6, "Kalan Kapasite", SV["bmah"])
+c5 = section(right, "▸  BATARYA DURUMU", "#FFFFFF", 4)
+batt_bar_p = data_row(c5, "BATARYA %", SV["bpct"], show_progress=True)
+data_row(c5, "Gerilim", SV["vlt"])
+data_row(c5, "Akım", SV["bamp"])
+data_row(c5, "Kalan Kapasite", SV["bmah"])
 
 # OPTİMİZASYON: Görüntü kısmında video yerine sabit görsel (test_image.jpeg) kullanılır.
 def _kamera_thread_fn():
