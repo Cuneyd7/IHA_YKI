@@ -465,8 +465,8 @@ def haritaya_qr_ciz(lat, lon):
 if EKSTRA_MODULLER_OK:
     UCAK_BASE_IMG   = ucak_base_ciz()   
     UCAK_RAKIP_IMG  = ucak_rakip_ciz()
-    UCAK_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_BASE_IMG)
-    RAKIP_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_RAKIP_IMG)
+    UCAK_IKON_CACHE = {} # Erken başlatma hatası için boş bırakıldı
+    RAKIP_IKON_CACHE = {} 
     UCAK_TK_IMG     = None
     ucak_marker     = None
 
@@ -641,8 +641,11 @@ app.geometry("1600x900")
 app.title("KARAN İHA YER KONTROL İSTASYONU")
 app.configure(fg_color="#02050e") 
 
-if EKSTRA_MODULLER_OK and UCAK_BASE_IMG is not None:
-    UCAK_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_BASE_IMG)
+if EKSTRA_MODULLER_OK:
+    if UCAK_BASE_IMG is not None:
+        UCAK_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_BASE_IMG)
+    if UCAK_RAKIP_IMG is not None:
+        RAKIP_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_RAKIP_IMG)
 
 SV = {
     "roll": tk.StringVar(value="--- °"), "pitch": tk.StringVar(value="--- °"), "yaw": tk.StringVar(value="--- °"),
