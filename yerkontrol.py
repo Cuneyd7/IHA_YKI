@@ -661,37 +661,47 @@ _popout_windows = {}
 _kamera_labels = [] 
 
 def pop_out(ad, title):
-    # OPTİMİZASYON: Eğer yarışma paneli ise, zaten önceden build edildi (arka planda bekliyor)
-    if ad == "yarisma":
-        if ad in _popout_windows:
-            win = _popout_windows[ad]
-            if win.winfo_viewable():
-                win.withdraw(); _W["popout_active"] = False
-            else:
-                win.deiconify(); win.lift(); _W["popout_active"] = True
-            return
-
     if ad in _popout_windows and _popout_windows[ad].winfo_exists():
-        _popout_windows[ad].deiconify(); _popout_windows[ad].lift(); return
+        _popout_windows[ad].lift(); return
 
     f = sekme_frames.get(ad)
     if f is None: return
 
+    # OPTİMİZASYON: Pop-out penceresini oluştur
     win = ctk.CTkToplevel(app)
-    win.title(f"⤢  {title}"); win.geometry("1400x860"); win.configure(bg="#020810")
-    win.attributes("-topmost", True)
+    win.title(f"⤢  {title}")
+    win.geometry("1400x860")
+    win.configure(bg="#020810")
+    win.attributes("-topmost", True) # Öne getir
     _popout_windows[ad] = win
 
     if ad == "kamera":
         lbl_kamera_pop = tk.Label(win, bg="#000000")
         lbl_kamera_pop.pack(fill="both", expand=True)
         _kamera_labels.append(lbl_kamera_pop)
+        
         def on_close_kamera():
             if lbl_kamera_pop in _kamera_labels: _kamera_labels.remove(lbl_kamera_pop)
-            win.withdraw()
+            win.destroy()
+            _popout_windows.pop(ad, None)
+            if aktif_sekme[0] == ad: sekme_ac(ad)
         win.protocol("WM_DELETE_WINDOW", on_close_kamera)
+        
+    elif ad == "yarisma":
+        # OPTİMİZASYON: Chrome benzeri akıcılık için içeriği yeni pencereye taşı
+        # Eski içeriği temizle ve widget'ları pop-out penceresine kur
+        _build_panel(win)
 
-    if aktif_sekme[0] == ad: sekme_ac("yki")
+        def on_close_yarisma():
+            _popout_windows.pop(ad, None)
+            win.destroy()
+            # Kapatıldığında akıcı bir şekilde ana frame'e geri kur
+            _build_panel(yarisma_frame)
+            if aktif_sekme[0] == ad: sekme_ac(ad)
+        win.protocol("WM_DELETE_WINDOW", on_close_yarisma)
+
+    if aktif_sekme[0] == ad:
+        sekme_ac("yki")
 
 # ── Üst Bar ───────────────────────────────────────────────────
 top = ctk.CTkFrame(app, height=52, fg_color="#04080f", corner_radius=0)
@@ -1309,25 +1319,31 @@ def master_loop():
     """Eski master_loop — artık hud_loop/kamera_loop/map_loop ayrı çalışır. Geriye dönük uyumluluk için boş bırakıldı."""
     pass
 
-# OPTİMİZASYON: Kalıcı Widget Referansları (Çift Panel Mimari)
+# OPTİMİZASYON: Widget Referansları (Update döngüsü için)
 _W = {
-    "instances": {
-        "main": {"labels": {}, "psv": {}, "dt_rows": [], "dt_count": [-1]},
-        "popout": {"labels": {}, "psv": {}, "dt_rows": [], "dt_count": [-1]}
-    },
-    "popout_active": False,
+    "labels": {}, 
+    "psv": {},
+    "log_tb": None,
+    "diger_f": None,
+    "dt_rows": [],
+    "dt_count": [-1],
     "active_parent": None
 }
 
-def _build_panel(pwin, target="main"):
+def _build_panel(pwin=None):
     """
-    OPTİMİZASYON: Paneli bir kez kurar ve referansları saklar.
-    Chrome akıcılığı için pwin içeriği silinmez, gizlenir/gösterilir.
+    OPTİMİZASYON: Yarışma panelini dinamik olarak hedeflenen pencereye kurar.
+    Chrome sekmeleri gibi akıcı geçiş için pwin içeriğini temizler ve yeniden oluşturur.
     """
-    inst = _W["instances"][target]
-    for child in pwin.winfo_children(): child.destroy()
+    if pwin is None: pwin = _YARISMA_PARENT
+    
+    # Mevcut widget'ları temizle (Akıcı geçiş için şart)
+    for child in pwin.winfo_children():
+        child.destroy()
 
-    pFB = ctk.CTkFont(family="Consolas", size=18, weight="bold")
+    _W["active_parent"] = pwin
+    _W["dt_rows"] = []
+    _W["dt_count"] = [-1]
     
     pFB = ctk.CTkFont(family="Consolas", size=18, weight="bold")
     pFK = ctk.CTkFont(family="Consolas", size=13, weight="bold")
@@ -1595,71 +1611,59 @@ def _build_panel(pwin, target="main"):
     log_tb = ctk.CTkTextbox(pright, height=130, font=pFS, fg_color="#020810", text_color="#475569", border_color="#0f172a", border_width=1)
     log_tb.grid(row=10, column=0, padx=10, pady=(0,8), sticky="ew"); log_tb.configure(state="disabled")
 
-    # Update döngüsü için referansları instance içine kaydet
-    inst["labels"] = {
-        "lat": lbl_p_lat, "lon": lbl_p_lon, "alt": lbl_p_alt, "hdg": lbl_p_hdg,
-        "mode": lbl_p_mode, "batt": lbl_p_batt, "hz": lbl_hz, "kl": lbl_kl,
-        "km": lbl_km, "qre": lbl_qre, "qrb": lbl_qrb
-    }
-    inst["psv"] = PSV; inst["log_tb"] = log_tb; inst["diger_f"] = diger_f
-    inst["diger_yaz_fn"] = _diger_yaz
-
-# OPTİMİZASYON: Label metinlerini cache'leyerek gereksiz redraw'u engelle
-_PANEL_TEXT_CACHE = {}
+    # Update döngüsü için referansları kaydet
+    _W["labels"]["lat"] = lbl_p_lat; _W["labels"]["lon"] = lbl_p_lon
+    _W["labels"]["alt"] = lbl_p_alt; _W["labels"]["hdg"] = lbl_p_hdg
+    _W["labels"]["mode"] = lbl_p_mode; _W["labels"]["batt"] = lbl_p_batt
+    _W["labels"]["hz"] = lbl_hz; _W["labels"]["kl"] = lbl_kl; _W["labels"]["km"] = lbl_km
+    _W["labels"]["qre"] = lbl_qre; _W["labels"]["qrb"] = lbl_qrb
+    _W["psv"] = PSV; _W["log_tb"] = log_tb; _W["diger_f"] = diger_f
+    _W["hss_tb"] = hss_tb; _W["btn_tel"] = btn_tel; _W["diger_yaz_fn"] = _diger_yaz
 
 def _panel_update():
-    """OPTİMİZASYON: Instant update — sadece değişen değerleri UI'a yansıtır."""
+    """OPTİMİZASYON: Global panel update döngüsü. Hangi pencere aktifse ona yazar."""
+    pwin = _W["active_parent"]
+    if not pwin or not pwin.winfo_exists():
+        app.after(1000, _panel_update); return
+
+    # Verileri güncelle
     try:
-        active_insts = ["main"]
-        if _W["popout_active"]: active_insts.append("popout")
+        L = _W["labels"]; P = _W["psv"]
+        if "lat" in L:
+            L["lat"].configure(text=f"{D.get('lat',0.0):.5f} °")
+            L["lon"].configure(text=f"{D.get('lon',0.0):.5f} °")
+            L["alt"].configure(text=f"{_agl_val[0]:.1f} m")
+            L["hdg"].configure(text=f"{D.get('heading',0)} °")
+            L["mode"].configure(text=D.get("mode","---"))
+            L["batt"].configure(text=f"{D.get('batt_pct',0)} %")
 
-        for key in active_insts:
-            inst = _W["instances"][key]
-            L = inst.get("labels"); P = inst.get("psv")
-            if not L or not P: continue
+        P["enlem"].set(f"{D.get('lat',0.0):.6f}")
+        P["boylam"].set(f"{D.get('lon',0.0):.6f}")
+        P["irtifa"].set(f"{_agl_val[0]:.1f} m")
+        P["dikilme"].set(f"{math.degrees(D.get('pitch',0.0)):.1f} °")
+        P["yonelme"].set(f"{D.get('heading',0)} °")
+        P["yatis"].set(f"{math.degrees(D.get('roll',0.0)):.1f} °")
+        P["hiz"].set(f"{D.get('gs',0.0):.1f} m/s")
+        P["batarya"].set(f"{D.get('batt_pct',0)} %")
+        P["otonom"].set("1-OTONOM" if _otonom_mu() else "0-MANUEL")
+        P["gps_s"].set(f"{D['gps_saat']:02d}:{D['gps_dakika']:02d}:{D['gps_saniye']:02d}.{D['gps_ms']:03d}")
+        P["http_kod"].set(son_cevap_kodu[0])
+        P["takim"].set(f"# {TAKIM_NO[0]}" if TAKIM_NO[0] > 0 else "Giriş yap")
 
-            # OPTİMİZASYON: Text değişmediyse configure() çağırma (Redraw tasarrufu)
-            def _set_lbl(l_key, text):
-                c_key = f"{key}_{l_key}"
-                if _PANEL_TEXT_CACHE.get(c_key) != text:
-                    L[l_key].configure(text=text)
-                    _PANEL_TEXT_CACHE[c_key] = text
+        if "diger_yaz_fn" in _W: _W["diger_yaz_fn"](diger_takimlar[0])
 
-            _set_lbl("lat",  f"{D.get('lat',0.0):.5f} °")
-            _set_lbl("lon",  f"{D.get('lon',0.0):.5f} °")
-            _set_lbl("alt",  f"{_agl_val[0]:.1f} m")
-            _set_lbl("hdg",  f"{D.get('heading',0)} °")
-            _set_lbl("mode", D.get("mode","---"))
-            _set_lbl("batt", f"{D.get('batt_pct',0)} %")
-
-            # PSV güncellemeleri (StringVar olduğu için cache zaten kendi içinde)
-            P["enlem"].set(f"{D.get('lat',0.0):.6f}")
-            P["boylam"].set(f"{D.get('lon',0.0):.6f}")
-            P["irtifa"].set(f"{_agl_val[0]:.1f} m")
-            P["dikilme"].set(f"{math.degrees(D.get('pitch',0.0)):.1f} °")
-            P["yonelme"].set(f"{D.get('heading',0)} °")
-            P["yatis"].set(f"{math.degrees(D.get('roll',0.0)):.1f} °")
-            P["hiz"].set(f"{D.get('gs',0.0):.1f} m/s")
-            P["batarya"].set(f"{D.get('batt_pct',0)} %")
-            P["otonom"].set("1-OTONOM" if _otonom_mu() else "0-MANUEL")
-            P["gps_s"].set(f"{D['gps_saat']:02d}:{D['gps_dakika']:02d}:{D['gps_saniye']:02d}.{D['gps_ms']:03d}")
-            P["http_kod"].set(son_cevap_kodu[0])
-            P["takim"].set(f"# {TAKIM_NO[0]}" if TAKIM_NO[0] > 0 else "Giriş yap")
-
-            if "diger_yaz_fn" in inst: inst["diger_yaz_fn"](diger_takimlar[0])
-
-            log_tb = inst["log_tb"]
-            if log_tb:
-                _log_yeni = "\n".join(_panel_log[-25:])
-                cache_key = f"_son_log_{key}"
-                if getattr(_panel_update, cache_key, None) != _log_yeni:
-                    setattr(_panel_update, cache_key, _log_yeni)
-                    log_tb.configure(state="normal")
-                    log_tb.delete("1.0","end"); log_tb.insert("end", _log_yeni); log_tb.see("end"); log_tb.configure(state="disabled")
+        log_tb = _W["log_tb"]
+        if log_tb:
+            _log_yeni = "\n".join(_panel_log[-25:])
+            if not hasattr(_panel_update, "_son_log") or _panel_update._son_log != _log_yeni:
+                _panel_update._son_log = _log_yeni
+                log_tb.configure(state="normal")
+                log_tb.delete("1.0","end"); log_tb.insert("end", _log_yeni); log_tb.see("end"); log_tb.configure(state="disabled")
     except: pass
-    app.after(400, _panel_update)
 
-# Uygulama başında update döngüsünü bir kez başlat
+    app.after(500, _panel_update)
+
+# Uygulama başında bir kez başlat
 app.after(1000, _panel_update)
 
 # ══════════════════════════════════════════════════════════════
@@ -1690,21 +1694,12 @@ yarisma_frame = ctk.CTkFrame(tab_container, fg_color="#020810", corner_radius=0)
 yarisma_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["yarisma"] = yarisma_frame
 
-# OPTİMİZASYON: Başlangıçta tüm panelleri pre-build et (Arka planda hazır)
 _YARISMA_PARENT = yarisma_frame   
-_build_panel(yarisma_frame, "main")
-
-# Yarışma pop-out penceresini gizli olarak oluştur ve build et
-win_pop = ctk.CTkToplevel(app)
-win_pop.title("⤢  Yarışma Sunucusu"); win_pop.geometry("1400x860"); win_pop.configure(bg="#020810")
-win_pop.attributes("-topmost", True); win_pop.withdraw() # Gizli tut
-_popout_windows["yarisma"] = win_pop
-_build_panel(win_pop, "popout")
-win_pop.protocol("WM_DELETE_WINDOW", lambda: [win_pop.withdraw(), setattr(_W, "popout_active", False)])
+_build_panel()
 
 app.after(100, lambda: sekme_ac("yki"))
 app.after(150, telemetry_ui_loop)
-app.after(200, hud_loop)
-app.after(220, kamera_loop)
-app.after(300, map_loop)
+app.after(200, hud_loop)       # HUD 3D model — 16ms/frame
+app.after(220, kamera_loop)    # Kamera — 33ms/frame
+app.after(300, map_loop)       # Harita — 80ms/frame
 app.mainloop()
