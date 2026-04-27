@@ -1340,6 +1340,9 @@ def _build_panel(pwin=None):
     url_f = ctk.CTkFrame(pleft, fg_color="transparent"); url_f.grid(row=1,column=0,padx=12,pady=5,sticky="ew")
     url_entry = ctk.CTkEntry(url_f, font=pFL, fg_color="#090e1a", border_color="#1f2937", text_color="#00ffcc", height=32, placeholder_text="Sunucu URL")
     url_entry.insert(0, SERVER_URL); url_entry.pack(side="left", fill="x", expand=True, padx=(0,5))
+    def set_url():
+        global SERVER_URL; SERVER_URL = url_entry.get().strip(); plog(f"URL: {SERVER_URL}")
+
     ctk.CTkButton(url_f, text="Set", font=pFU, height=32, width=60, fg_color="#1f2937", hover_color="#374151", command=set_url).pack(side="right")
     
     pgrid_sep(pleft, 2)
