@@ -667,10 +667,12 @@ def pop_out(ad, title):
     f = sekme_frames.get(ad)
     if f is None: return
 
+    # OPTİMİZASYON: Pop-out penceresini oluştur
     win = ctk.CTkToplevel(app)
     win.title(f"⤢  {title}")
     win.geometry("1400x860")
     win.configure(bg="#020810")
+    win.attributes("-topmost", True) # Öne getir
     _popout_windows[ad] = win
 
     if ad == "kamera":
@@ -686,12 +688,14 @@ def pop_out(ad, title):
         win.protocol("WM_DELETE_WINDOW", on_close_kamera)
         
     elif ad == "yarisma":
-        # Panel rebuild edilmez — güncelleme döngüsü yeniden ateşlenir
+        # OPTİMİZASYON: Chrome benzeri akıcılık için içeriği yeni pencereye taşı
+        # Eski içeriği temizle ve widget'ları pop-out penceresine kur
         _build_panel(win)
 
         def on_close_yarisma():
-            win.destroy()
             _popout_windows.pop(ad, None)
+            win.destroy()
+            # Kapatıldığında akıcı bir şekilde ana frame'e geri kur
             _build_panel(yarisma_frame)
             if aktif_sekme[0] == ad: sekme_ac(ad)
         win.protocol("WM_DELETE_WINDOW", on_close_yarisma)
@@ -1315,20 +1319,31 @@ def master_loop():
     """Eski master_loop — artık hud_loop/kamera_loop/map_loop ayrı çalışır. Geriye dönük uyumluluk için boş bırakıldı."""
     pass
 
-# ══════════════════════════════════════════════════════════════
-#  TEKNOFEST PANEL PENCERE KURUCUSU
-# ══════════════════════════════════════════════════════════════
-_PANEL_CACHE = {"built": False, "update_fn": None}
+# OPTİMİZASYON: Widget Referansları (Update döngüsü için)
+_W = {
+    "labels": {}, 
+    "psv": {},
+    "log_tb": None,
+    "diger_f": None,
+    "dt_rows": [],
+    "dt_count": [-1],
+    "active_parent": None
+}
 
 def _build_panel(pwin=None):
+    """
+    OPTİMİZASYON: Yarışma panelini dinamik olarak hedeflenen pencereye kurar.
+    Chrome sekmeleri gibi akıcı geçiş için pwin içeriğini temizler ve yeniden oluşturur.
+    """
     if pwin is None: pwin = _YARISMA_PARENT
+    
+    # Mevcut widget'ları temizle (Akıcı geçiş için şart)
+    for child in pwin.winfo_children():
+        child.destroy()
 
-    # Panel zaten kurulduysa → güncelleme döngüsünü yeniden ateşle, rebuild etme
-    if _PANEL_CACHE["built"] and _PANEL_CACHE["update_fn"] is not None:
-        app.after(50, _PANEL_CACHE["update_fn"])
-        return
-
-    pwin._panel_active = True 
+    _W["active_parent"] = pwin
+    _W["dt_rows"] = []
+    _W["dt_count"] = [-1]
     
     pFB = ctk.CTkFont(family="Consolas", size=18, weight="bold")
     pFK = ctk.CTkFont(family="Consolas", size=13, weight="bold")
@@ -1489,29 +1504,28 @@ def _build_panel(pwin=None):
 
     def _diger_yaz(liste):
         n = len(liste) if liste else 0
-        if n != _dt_count[0]:
-            # Satır sayısı değişti — tamamen yeniden çiz
-            for w in diger_f.winfo_children(): w.destroy()
-            _dt_rows.clear(); _dt_count[0] = n
+        df = _W["diger_f"]
+        if n != _W["dt_count"][0]:
+            for w in df.winfo_children(): w.destroy()
+            _W["dt_rows"].clear(); _W["dt_count"][0] = n
             if not liste:
-                ctk.CTkLabel(diger_f, text="  — Veri yok —", font=pFL, text_color="#334155").pack(pady=6); return
-            hdr_r = ctk.CTkFrame(diger_f, fg_color="#0d1829", corner_radius=6); hdr_r.pack(fill="x", padx=4)
+                ctk.CTkLabel(df, text="  — Veri yok —", font=pFL, text_color="#334155").pack(pady=6); return
+            hdr_r = ctk.CTkFrame(df, fg_color="#0d1829", corner_radius=6); hdr_r.pack(fill="x", padx=4)
             for col,(txt,w) in enumerate([("Takım",50),("Enlem",100),("Boylam",100),("İrtifa",60),("Yönel.",55),("Hız",50),("∆T ms",60)]):
                 ctk.CTkLabel(hdr_r, text=txt, font=pFU, text_color="#38BDF8", width=w, anchor="center").grid(row=0, column=col, padx=3, pady=2)
             for i, t in enumerate(liste):
-                row_f = ctk.CTkFrame(diger_f, fg_color="#050d1a" if i%2==0 else "#070f1e", corner_radius=0); row_f.pack(fill="x", padx=4)
+                row_f = ctk.CTkFrame(df, fg_color="#050d1a" if i%2==0 else "#070f1e", corner_radius=0); row_f.pack(fill="x", padx=4)
                 row_lbls = []
                 vals = [str(t.get("takim_numarasi","?")), f"{t.get('iha_enlem',0):.5f}", f"{t.get('iha_boylam',0):.5f}", f"{t.get('iha_irtifa',0):.1f}m", f"{t.get('iha_yonelme',0):.0f}°", f"{t.get('iha_hizi',0):.1f}", f"{t.get('zaman_farki',0)}"]
                 for c,(v,w) in enumerate(zip(vals, [50,100,100,60,55,50,60])):
                     lbl = ctk.CTkLabel(row_f, text=v, font=pFS, text_color="#cbd5e1", width=w, anchor="center")
                     lbl.grid(row=0, column=c, padx=3, pady=2); row_lbls.append(lbl)
-                _dt_rows.append(row_lbls)
+                _W["dt_rows"].append(row_lbls)
         elif liste:
-            # Satır sayısı aynı — sadece text güncelle, widget yeniden yaratma yok
             for i, t in enumerate(liste):
                 vals = [str(t.get("takim_numarasi","?")), f"{t.get('iha_enlem',0):.5f}", f"{t.get('iha_boylam',0):.5f}", f"{t.get('iha_irtifa',0):.1f}m", f"{t.get('iha_yonelme',0):.0f}°", f"{t.get('iha_hizi',0):.1f}", f"{t.get('zaman_farki',0)}"]
-                if i < len(_dt_rows):
-                    for lbl, v in zip(_dt_rows[i], vals): lbl.configure(text=v)
+                if i < len(_W["dt_rows"]):
+                    for lbl, v in zip(_W["dt_rows"][i], vals): lbl.configure(text=v)
 
     # ── SAĞ PANEL ─────────────────────────────────────────────
     pright = ctk.CTkFrame(pmain, corner_radius=12, fg_color="#070f1e", border_width=1, border_color="#1e3a5f")
@@ -1597,43 +1611,60 @@ def _build_panel(pwin=None):
     log_tb = ctk.CTkTextbox(pright, height=130, font=pFS, fg_color="#020810", text_color="#475569", border_color="#0f172a", border_width=1)
     log_tb.grid(row=10, column=0, padx=10, pady=(0,8), sticky="ew"); log_tb.configure(state="disabled")
 
-    def _panel_update():
-        if not pwin.winfo_exists() or not getattr(pwin, "_panel_active", True): return 
-        
-        lbl_p_lat.configure(text=f"{D.get('lat',0.0):.5f} °")
-        lbl_p_lon.configure(text=f"{D.get('lon',0.0):.5f} °")
-        lbl_p_alt.configure(text=f"{_agl_val[0]:.1f} m")
-        lbl_p_hdg.configure(text=f"{D.get('heading',0)} °")
-        lbl_p_mode.configure(text=D.get("mode","---"))
-        lbl_p_batt.configure(text=f"{D.get('batt_pct',0)} %")
+    # Update döngüsü için referansları kaydet
+    _W["labels"]["lat"] = lbl_p_lat; _W["labels"]["lon"] = lbl_p_lon
+    _W["labels"]["alt"] = lbl_p_alt; _W["labels"]["hdg"] = lbl_p_hdg
+    _W["labels"]["mode"] = lbl_p_mode; _W["labels"]["batt"] = lbl_p_batt
+    _W["labels"]["hz"] = lbl_hz; _W["labels"]["kl"] = lbl_kl; _W["labels"]["km"] = lbl_km
+    _W["labels"]["qre"] = lbl_qre; _W["labels"]["qrb"] = lbl_qrb
+    _W["psv"] = PSV; _W["log_tb"] = log_tb; _W["diger_f"] = diger_f
+    _W["hss_tb"] = hss_tb; _W["btn_tel"] = btn_tel; _W["diger_yaz_fn"] = _diger_yaz
 
-        PSV["enlem"].set(f"{D.get('lat',0.0):.6f}")
-        PSV["boylam"].set(f"{D.get('lon',0.0):.6f}")
-        PSV["irtifa"].set(f"{_agl_val[0]:.1f} m")
-        PSV["dikilme"].set(f"{math.degrees(D.get('pitch',0.0)):.1f} °")
-        PSV["yonelme"].set(f"{D.get('heading',0)} °")
-        PSV["yatis"].set(f"{math.degrees(D.get('roll',0.0)):.1f} °")
-        PSV["hiz"].set(f"{D.get('gs',0.0):.1f} m/s")
-        PSV["batarya"].set(f"{D.get('batt_pct',0)} %")
-        PSV["otonom"].set("1-OTONOM" if _otonom_mu() else "0-MANUEL")
-        PSV["gps_s"].set(f"{D['gps_saat']:02d}:{D['gps_dakika']:02d}:{D['gps_saniye']:02d}.{D['gps_ms']:03d}")
-        PSV["http_kod"].set(son_cevap_kodu[0])
-        PSV["takim"].set(f"# {TAKIM_NO[0]}" if TAKIM_NO[0] > 0 else "Giriş yap")
+def _panel_update():
+    """OPTİMİZASYON: Global panel update döngüsü. Hangi pencere aktifse ona yazar."""
+    pwin = _W["active_parent"]
+    if not pwin or not pwin.winfo_exists():
+        app.after(1000, _panel_update); return
 
-        _diger_yaz(diger_takimlar[0])
+    # Verileri güncelle
+    try:
+        L = _W["labels"]; P = _W["psv"]
+        if "lat" in L:
+            L["lat"].configure(text=f"{D.get('lat',0.0):.5f} °")
+            L["lon"].configure(text=f"{D.get('lon',0.0):.5f} °")
+            L["alt"].configure(text=f"{_agl_val[0]:.1f} m")
+            L["hdg"].configure(text=f"{D.get('heading',0)} °")
+            L["mode"].configure(text=D.get("mode","---"))
+            L["batt"].configure(text=f"{D.get('batt_pct',0)} %")
 
-        _log_yeni = "\n".join(_panel_log[-25:])
-        if not hasattr(_panel_update, "_son_log") or _panel_update._son_log != _log_yeni:
-            _panel_update._son_log = _log_yeni
-            log_tb.configure(state="normal")
-            log_tb.delete("1.0","end"); log_tb.insert("end", _log_yeni); log_tb.see("end"); log_tb.configure(state="disabled")
+        P["enlem"].set(f"{D.get('lat',0.0):.6f}")
+        P["boylam"].set(f"{D.get('lon',0.0):.6f}")
+        P["irtifa"].set(f"{_agl_val[0]:.1f} m")
+        P["dikilme"].set(f"{math.degrees(D.get('pitch',0.0)):.1f} °")
+        P["yonelme"].set(f"{D.get('heading',0)} °")
+        P["yatis"].set(f"{math.degrees(D.get('roll',0.0)):.1f} °")
+        P["hiz"].set(f"{D.get('gs',0.0):.1f} m/s")
+        P["batarya"].set(f"{D.get('batt_pct',0)} %")
+        P["otonom"].set("1-OTONOM" if _otonom_mu() else "0-MANUEL")
+        P["gps_s"].set(f"{D['gps_saat']:02d}:{D['gps_dakika']:02d}:{D['gps_saniye']:02d}.{D['gps_ms']:03d}")
+        P["http_kod"].set(son_cevap_kodu[0])
+        P["takim"].set(f"# {TAKIM_NO[0]}" if TAKIM_NO[0] > 0 else "Giriş yap")
 
-        app.after(500, _panel_update)
+        if "diger_yaz_fn" in _W: _W["diger_yaz_fn"](diger_takimlar[0])
 
-    _PANEL_CACHE["update_fn"] = _panel_update
-    _PANEL_CACHE["built"] = True
-    app.after(600, _panel_update)
-    plog("Panel hazır. Giriş yapın.")
+        log_tb = _W["log_tb"]
+        if log_tb:
+            _log_yeni = "\n".join(_panel_log[-25:])
+            if not hasattr(_panel_update, "_son_log") or _panel_update._son_log != _log_yeni:
+                _panel_update._son_log = _log_yeni
+                log_tb.configure(state="normal")
+                log_tb.delete("1.0","end"); log_tb.insert("end", _log_yeni); log_tb.see("end"); log_tb.configure(state="disabled")
+    except: pass
+
+    app.after(500, _panel_update)
+
+# Uygulama başında bir kez başlat
+app.after(1000, _panel_update)
 
 # ══════════════════════════════════════════════════════════════
 #  KAMERA SEKMESİ — Tam Ekran FPV
