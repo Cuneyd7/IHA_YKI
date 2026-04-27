@@ -1441,6 +1441,31 @@ def _build_panel(pwin=None):
     diger_f = ctk.CTkScrollableFrame(pmid, height=220, fg_color="#090e1a", scrollbar_button_color="#1f2937", scrollbar_fg_color="#030712")
     diger_f.grid(row=4, column=0, padx=15, pady=(0,15), sticky="nsew"); diger_f.grid_columnconfigure(0, weight=1)
 
+    def _diger_yaz(liste):
+        n = len(liste) if liste else 0
+        df = _W["diger_f"]
+        if n != _W["dt_count"][0]:
+            for w in df.winfo_children(): w.destroy()
+            _W["dt_rows"].clear(); _W["dt_count"][0] = n
+            if not liste:
+                ctk.CTkLabel(df, text="  — Veri yok —", font=pFL, text_color="#334155").pack(pady=6); return
+            hdr_r = ctk.CTkFrame(df, fg_color="#0d1829", corner_radius=6); hdr_r.pack(fill="x", padx=4)
+            for col,(txt,w) in enumerate([("Takım",50),("Enlem",100),("Boylam",100),("İrtifa",60),("Yönel.",55),("Hız",50),("∆T ms",60)]):
+                ctk.CTkLabel(hdr_r, text=txt, font=pFU, text_color="#38BDF8", width=w, anchor="center").grid(row=0, column=col, padx=3, pady=2)
+            for i, t in enumerate(liste):
+                row_f = ctk.CTkFrame(df, fg_color="#050d1a" if i%2==0 else "#070f1e", corner_radius=0); row_f.pack(fill="x", padx=4)
+                row_lbls = []
+                vals = [str(t.get("takim_numarasi","?")), f"{t.get('iha_enlem',0):.5f}", f"{t.get('iha_boylam',0):.5f}", f"{t.get('iha_irtifa',0):.1f}m", f"{t.get('iha_yonelme',0):.0f}°", f"{t.get('iha_hizi',0):.1f}", f"{t.get('zaman_farki',0)}"]
+                for c,(v,w) in enumerate(zip(vals, [50,100,100,60,55,50,60])):
+                    lbl = ctk.CTkLabel(row_f, text=v, font=pFS, text_color="#cbd5e1", width=w, anchor="center")
+                    lbl.grid(row=0, column=c, padx=3, pady=2); row_lbls.append(lbl)
+                _W["dt_rows"].append(row_lbls)
+        elif liste:
+            for i, t in enumerate(liste):
+                vals = [str(t.get("takim_numarasi","?")), f"{t.get('iha_enlem',0):.5f}", f"{t.get('iha_boylam',0):.5f}", f"{t.get('iha_irtifa',0):.1f}m", f"{t.get('iha_yonelme',0):.0f}°", f"{t.get('iha_hizi',0):.1f}", f"{t.get('zaman_farki',0)}"]
+                if i < len(_W["dt_rows"]):
+                    for lbl, v in zip(_W["dt_rows"][i], vals): lbl.configure(text=v)
+
     # ── SAĞ PANEL (OPERASYON & LOG) ────────────────────────────
     pright = ctk.CTkFrame(pmain, corner_radius=15, fg_color="#030712", border_width=1, border_color="#1f2937")
     pright.grid(row=0, column=2, sticky="nsew"); pright.grid_columnconfigure(0, weight=1)
