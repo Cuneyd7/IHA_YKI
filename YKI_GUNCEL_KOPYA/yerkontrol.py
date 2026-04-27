@@ -1,11 +1,4 @@
-"""
-YKİ OpenGL - Pygame Donanım İvmelendirmeli Sürüm (Glass Cockpit UI)
-- Ortadaki ufuk çizgisi kaldırıldı.
-- HUD üstüne Pusula, Sol ve Sağ tarafa bağımsız Roll ve Pitch yuvarlak kadranları (Artificial Horizon) eklendi.
-- KUSURSUZ OPTİMİZASYON: Z-Index Sıfır Gecikmeli Sekmeler, Multithreading Ağ.
-- YENİ: Harita Üzerinde Canlı Rakip Radarı, HSS Çemberleri ve QR Hedefi!
-- YENİ: Telemetri Veri Tipi Optimizasyonu (Katı Integer/Float Dönüşümü)
-"""
+
 
 import customtkinter as ctk
 import tkinter as tk
@@ -1499,7 +1492,7 @@ def _build_panel(pwin=None):
             app.after(0, lambda: lbl_kl.configure(text=msg, text_color=renk)); plog(f"Kilitlenme: {kod}")
         threading.Thread(target=_k, daemon=True).start()
 
-    ctk.CTkButton(ck, text="🔒 Kilitlenme Gönder", font=pFK, height=32, fg_color="#881337", hover_color="#be123c", command=kilit_gonder).pack(fill="x", padx=12, pady=(0,8))
+    ctk.CTkButton(ck, text=" Kilitlenme Gönder", font=pFK, height=32, fg_color="#881337", hover_color="#be123c", command=kilit_gonder).pack(fill="x", padx=12, pady=(0,8))
     ctk.CTkFrame(pright, height=1, fg_color="#1e3a5f").grid(row=2, column=0, padx=10, pady=3, sticky="ew")
 
     ckm = pcard(pright, "▸  KAMİKAZE BİLGİSİ", "#f97316", 3)
@@ -1519,7 +1512,7 @@ def _build_panel(pwin=None):
 
     bkm = ctk.CTkFrame(ckm, fg_color="transparent"); bkm.pack(fill="x", padx=12, pady=(2,8))
     ctk.CTkButton(bkm, text="⏱ Başlat", font=pFU, height=28, width=90, fg_color="#431407", hover_color="#c2410c", command=km_bas).pack(side="left", padx=(0,4))
-    ctk.CTkButton(bkm, text="🚀 Gönder", font=pFU, height=28, fg_color="#7c2d12", hover_color="#ea580c", command=km_gonder).pack(side="right", expand=True)
+    ctk.CTkButton(bkm, text=" Gönder", font=pFU, height=28, fg_color="#7c2d12", hover_color="#ea580c", command=km_gonder).pack(side="right", expand=True)
 
     ctk.CTkFrame(pright, height=1, fg_color="#1e3a5f").grid(row=4, column=0, padx=10, pady=3, sticky="ew")
 
