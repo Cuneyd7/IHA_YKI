@@ -1015,13 +1015,23 @@ if EKSTRA_MODULLER_OK:
 def mavlink_dinleyici_thread():
     global MAP_HEDEF_LAT, MAP_HEDEF_LON, MAP_HEDEF_HEADING, MAP_GPS_TIME, MAP_LERP_HAZIR
     global MAP_SMOOTH_LAT, MAP_SMOOTH_LON, MAP_SMOOTH_HEADING
+
+    # OPTİMİZASYON: Sadece GUI'nin ihtiyaç duyduğu paket tipleri — gerisi continue ile atlanır
+    _ALLOWED_TYPES = frozenset({
+        'ATTITUDE', 'VFR_HUD', 'SYS_STATUS', 'HEARTBEAT',
+        'BATTERY_STATUS', 'ESC_TELEMETRY_1_TO_4', 'ESC_STATUS',
+        'RC_CHANNELS', 'GPS_RAW_INT', 'GLOBAL_POSITION_INT'
+    })
+
     while True:
         if baglanti:
             try:
                 m = baglanti.recv_match(blocking=True, timeout=0.05)
                 if not m: continue
                 t = m.get_type()
-                if t == 'BAD_DATA': continue
+
+                # OPTİMİZASYON: İşe yaramayan paketleri hızlıca atla
+                if t not in _ALLOWED_TYPES: continue
             
                 if t == 'ATTITUDE':
                     D["roll"]=m.roll; D["pitch"]=m.pitch; D["yaw"]=m.yaw
@@ -1031,6 +1041,10 @@ def mavlink_dinleyici_thread():
                     D["airspeed"]=m.airspeed; D["alt"]=m.alt
                     D["heading"]=m.heading;   D["gs"]=m.groundspeed
                     _msl_val[0] = m.alt
+                    # OPTİMİZASYON: Throttle bilgisini aynı paket içinde yakala
+                    if hasattr(m, 'throttle'):
+                        pct = max(0, min(100, int(m.throttle)))
+                        if D.get("throttle_pct", 0) == 0: D["throttle_pct"] = pct
                 elif t == 'SYS_STATUS':
                     D["batt_volt"] = m.voltage_battery / 1000.0
                     D["batt_amp"] = m.current_battery / 100.0 if m.current_battery != -1 else 0.0
@@ -1045,9 +1059,6 @@ def mavlink_dinleyici_thread():
                 elif t == 'RC_CHANNELS':
                     try: D["throttle_pct"] = max(0, min(100, int((getattr(m, 'chan3_raw', 1000) - 1000) / 10)))
                     except: pass
-                elif t == 'VFR_HUD' and hasattr(m, 'throttle'):
-                    pct = max(0, min(100, int(m.throttle)))
-                    if D.get("throttle_pct", 0) == 0: D["throttle_pct"] = pct
                 elif t == 'GPS_RAW_INT':
                     D["sats"] = m.satellites_visible
                     try:
@@ -1075,14 +1086,31 @@ def mavlink_dinleyici_thread():
 
 threading.Thread(target=mavlink_dinleyici_thread, daemon=True).start()
 
-# Telemetri StringVar cache — sadece değişen değerler set() ile güncellenir
+# OPTİMİZASYON: Toplu (Batch) StringVar güncelleme sistemi
+# MAVLink thread'i değerleri buffer'a yazar, UI thread belirli aralıklarla toplu flush yapar.
+# Bu sayede soket okuma hızında StringVar.set() çağrılmaz — UI thread yorulmaz.
 _SV_CACHE = {}
+_SV_BATCH_BUFFER = {}  # thread-safe dict — MAVLink hızında yazılır, UI hızında okunur
+_SV_BATCH_LOCK = threading.Lock()
 
 def _sv_set(key, val):
-    """StringVar'ı sadece değer değiştiyse güncelle — gereksiz tkinter redraw engellenir."""
+    """Değeri buffer'a yaz — gerçek StringVar güncellemesi batch flush'ta yapılır."""
     if _SV_CACHE.get(key) != val:
         _SV_CACHE[key] = val
-        SV[key].set(val)
+        with _SV_BATCH_LOCK:
+            _SV_BATCH_BUFFER[key] = val
+
+def _sv_batch_flush():
+    """OPTİMİZASYON: Buffer'daki tüm değişiklikleri tek seferde UI'a uygula."""
+    with _SV_BATCH_LOCK:
+        if _SV_BATCH_BUFFER:
+            updates = _SV_BATCH_BUFFER.copy()
+            _SV_BATCH_BUFFER.clear()
+        else:
+            updates = None
+    if updates:
+        for key, val in updates.items():
+            SV[key].set(val)
 
 def telemetry_ui_loop():
     try:
