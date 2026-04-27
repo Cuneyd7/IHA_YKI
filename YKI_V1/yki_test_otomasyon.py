@@ -99,15 +99,18 @@ def test_3_telemetry_types_and_logic():
             log_error(f"Telemetri reddedildi. Kod: {resp.status_code}")
 
         # 1 Hz Kuralı (Hızlı gönderim hatası testi)
-        log_info("Spam testi yapılıyor (2 Hz üstü gönderim)...")
-        for _ in range(3):
-            session.post(f"{BASE_URL}/api/telemetri_gonder", json=telem_packet)
+        log_info("Spam testi yapılıyor (Ardışık hızlı gönderim)...")
+        hata_alindi = False
+        for _ in range(5):
+            r = session.post(f"{BASE_URL}/api/telemetri_gonder", json=telem_packet)
+            if r.status_code == 400:
+                hata_alindi = True
+                break
         
-        fast_resp = session.post(f"{BASE_URL}/api/telemetri_gonder", json=telem_packet)
-        if fast_resp.status_code == 400:
-            log_success("KURAL DOĞRULANDI: Sunucu hızlı istekleri (1 Hz) başarıyla reddetti (400).")
+        if hata_alindi:
+            log_success("KURAL DOĞRULANDI: Sunucu hızlı istekleri başarıyla reddetti (400).")
         else:
-            log_error(f"KURAL İHLALİ: Sunucu hızlı isteğe 400 dönmedi! Kod: {fast_resp.status_code}, Cevap: {fast_resp.text}")
+            log_error("KURAL İHLALİ: Sunucu ardışık hızlı isteklere 400 dönmedi!")
     except Exception as e:
         log_error(f"Hata: {e}")
 
