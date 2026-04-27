@@ -367,8 +367,8 @@ D = {
 }
 
 MAP_ILK_ODAK = False; SON_HARITA_GUNCELLEME = 0; MAP_ODAK_MODU = ["IHA"]
-# OPTİMİZASYON: Multiprocessing Queue — ayrı process'ten gelen kareler için
-_KAMERA_QUEUE = multiprocessing.Queue(maxsize=3)
+# OPTİMİZASYON: Thread-safe Queue — frame dropping ile en taze kareyi iletir
+_KAMERA_QUEUE = _queue.Queue(maxsize=3)
 SON_KAMERA_KARESI = None; KAMERA_KILIDI = threading.Lock()
 
 SMOOTH_HEADING = 0.0; SMOOTH_UI_ROLL = 0.0; SMOOTH_UI_PITCH = 0.0
@@ -1001,16 +1001,30 @@ batt_bot = ctk.CTkFrame(c6, fg_color="transparent"); batt_bot.pack(fill="x", pad
 ctk.CTkLabel(batt_bot, text="Kalan Kapasite", font=FU, text_color="#94a3b8").pack(side="left")
 ctk.CTkLabel(batt_bot, textvariable=SV["bmah"], font=ctk.CTkFont(family="Consolas", size=18, weight="bold"), text_color="#a78bfa").pack(side="right")
 
-# OPTİMİZASYON: Video işleme artık multiprocessing.Process ile ayrı çekirdekte çalışır
-# GIL tamamen devre dışı — sıfır gecikme. Frame dropping ile eski kareler atlanır.
+# OPTİMİZASYON: Video okuma threading + Queue frame dropping ile çalışır.
+# OpenCV'nin C++ fonksiyonları (resize, cvtColor, read) GIL'i serbest bırakır —
+# bu yüzden threading ile gerçek paralellik sağlanır. Queue doluysa eski kare atlanır.
+def _kamera_thread_fn():
+    """Arka planda video okur, Queue'ya en taze kareyi koyar."""
+    try:
+        cap = cv2.VideoCapture("test.mp4")
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0); continue
+            frame = cv2.resize(frame, (HEDEF_KAMERA_W, HEDEF_KAMERA_H), interpolation=cv2.INTER_NEAREST)
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # OPTİMİZASYON: Kare Atlama — kuyruk doluysa eskiyi at, her zaman en taze kareyi koy
+            while not _KAMERA_QUEUE.empty():
+                try: _KAMERA_QUEUE.get_nowait()
+                except: break
+            try: _KAMERA_QUEUE.put_nowait(frame_rgb)
+            except: pass
+            _time.sleep(0.030)
+    except Exception as e: print("Video Hatası:", e)
+
 if EKSTRA_MODULLER_OK:
-    from _video_worker import kamera_process_fn
-    _kamera_proc = multiprocessing.Process(
-        target=kamera_process_fn,
-        args=(_KAMERA_QUEUE, "test.mp4", HEDEF_KAMERA_W, HEDEF_KAMERA_H),
-        daemon=True
-    )
-    _kamera_proc.start()
+    threading.Thread(target=_kamera_thread_fn, daemon=True).start()
 
 def mavlink_dinleyici_thread():
     global MAP_HEDEF_LAT, MAP_HEDEF_LON, MAP_HEDEF_HEADING, MAP_GPS_TIME, MAP_LERP_HAZIR
