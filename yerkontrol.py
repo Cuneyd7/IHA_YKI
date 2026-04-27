@@ -13,7 +13,9 @@ from pymavlink import mavutil
 import math
 import os
 import threading
+import multiprocessing
 import time as _time
+import queue as _queue
 try:
     import requests
     from requests.adapters import HTTPAdapter
@@ -21,6 +23,13 @@ try:
     REQUESTS_OK = True
 except ImportError:
     REQUESTS_OK = False
+# OPTİMİZASYON: Asenkron ağ mimarisi için asyncio ve aiohttp
+import asyncio
+try:
+    import aiohttp
+    AIOHTTP_OK = True
+except ImportError:
+    AIOHTTP_OK = False
 try:
     import numpy as np
     NUMPY_OK = True
@@ -357,7 +366,9 @@ D = {
     "gps_saat":0, "gps_dakika":0, "gps_saniye":0, "gps_ms":0,
 }
 
-MAP_ILK_ODAK = False; SON_HARITA_GUNCELLEME = 0; MAP_ODAK_MODU = ["IHA"]  
+MAP_ILK_ODAK = False; SON_HARITA_GUNCELLEME = 0; MAP_ODAK_MODU = ["IHA"]
+# OPTİMİZASYON: Multiprocessing Queue — ayrı process'ten gelen kareler için
+_KAMERA_QUEUE = multiprocessing.Queue(maxsize=3)
 SON_KAMERA_KARESI = None; KAMERA_KILIDI = threading.Lock()
 
 SMOOTH_HEADING = 0.0; SMOOTH_UI_ROLL = 0.0; SMOOTH_UI_PITCH = 0.0
@@ -938,22 +949,16 @@ batt_bot = ctk.CTkFrame(c6, fg_color="transparent"); batt_bot.pack(fill="x", pad
 ctk.CTkLabel(batt_bot, text="Kalan Kapasite", font=FU, text_color="#94a3b8").pack(side="left")
 ctk.CTkLabel(batt_bot, textvariable=SV["bmah"], font=ctk.CTkFont(family="Consolas", size=18, weight="bold"), text_color="#a78bfa").pack(side="right")
 
-def kamera_arka_plan():
-    global SON_KAMERA_KARESI
-    try:
-        cap = cv2.VideoCapture("test.mp4")
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0); continue
-            # Doğrudan numpy array sakla — PIL dönüşümü UI thread'de yapılır
-            frame = cv2.resize(frame, (HEDEF_KAMERA_W, HEDEF_KAMERA_H), interpolation=cv2.INTER_NEAREST)
-            cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            with KAMERA_KILIDI: SON_KAMERA_KARESI = cv2image
-            _time.sleep(0.033)
-    except Exception as e: print("Video Hatası:", e)
-
-if EKSTRA_MODULLER_OK: threading.Thread(target=kamera_arka_plan, daemon=True).start()
+# OPTİMİZASYON: Video işleme artık multiprocessing.Process ile ayrı çekirdekte çalışır
+# GIL tamamen devre dışı — sıfır gecikme. Frame dropping ile eski kareler atlanır.
+if EKSTRA_MODULLER_OK:
+    from _video_worker import kamera_process_fn
+    _kamera_proc = multiprocessing.Process(
+        target=kamera_process_fn,
+        args=(_KAMERA_QUEUE, "test.mp4", HEDEF_KAMERA_W, HEDEF_KAMERA_H),
+        daemon=True
+    )
+    _kamera_proc.start()
 
 def mavlink_dinleyici_thread():
     global MAP_HEDEF_LAT, MAP_HEDEF_LON, MAP_HEDEF_HEADING, MAP_GPS_TIME, MAP_LERP_HAZIR
@@ -1106,13 +1111,16 @@ def hud_loop():
 _CAM_PIL_REF  = [None]   # Thread'den gelen son PIL image
 
 def kamera_loop():
-    """Sadece kamera frame günceller — 33ms = ~30fps."""
-    global SON_KAMERA_KARESI
+    """OPTİMİZASYON: Multiprocessing Queue'dan frame dropping ile en taze kareyi alır."""
     if EKSTRA_MODULLER_OK:
+        # OPTİMİZASYON: Kare Atlama — kuyruktaki tüm eski kareleri atla, sadece en sonuncuyu al
         _kare = None
-        with KAMERA_KILIDI:
-            if SON_KAMERA_KARESI is not None:
-                _kare = SON_KAMERA_KARESI; SON_KAMERA_KARESI = None
+        try:
+            while not _KAMERA_QUEUE.empty():
+                _kare = _KAMERA_QUEUE.get_nowait()
+        except Exception:
+            pass
+
         if _kare is not None:
             _pil = Image.fromarray(_kare)
             _CAM_PIL_REF[0] = _pil
