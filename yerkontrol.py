@@ -364,6 +364,8 @@ D = {
     "batt_volt":0.0, "batt_amp":0.0, "batt_mah":0, "batt_pct":0,
     "lat":0.0, "lon":0.0, "sats":0,
     "gps_saat":0, "gps_dakika":0, "gps_saniye":0, "gps_ms":0,
+    "iha_kilitlenme": 0,
+    "hedef_merkez_X": 0, "hedef_merkez_Y": 0, "hedef_genislik": 0, "hedef_yukseklik": 0
 }
 
 MAP_ILK_ODAK = False; SON_HARITA_GUNCELLEME = 0; MAP_ODAK_MODU = ["IHA"]
@@ -543,11 +545,11 @@ async def _async_telemetri_loop():
                     "iha_hiz":         int(max(0, D.get("gs", 0.0))),
                     "iha_batarya":     int(max(0, min(100, D.get("batt_pct", 0)))),
                     "iha_otonom":      int(_otonom_mu()),
-                    "iha_kilitlenme":  int(0),
-                    "hedef_merkez_X":  int(0),
-                    "hedef_merkez_Y":  int(0),
-                    "hedef_genislik":  int(0),
-                    "hedef_yukseklik": int(0),
+                    "iha_kilitlenme":  int(D.get("iha_kilitlenme", 0)),
+                    "hedef_merkez_X":  int(D.get("hedef_merkez_X", 0)),
+                    "hedef_merkez_Y":  int(D.get("hedef_merkez_Y", 0)),
+                    "hedef_genislik":  int(D.get("hedef_genislik", 0)),
+                    "hedef_yukseklik": int(D.get("hedef_yukseklik", 0)),
                     "gps_saati":       _gps_saati_dict(),
                 }
                 try:
@@ -593,11 +595,11 @@ elif REQUESTS_OK:
                     "iha_hiz":         int(max(0, D.get("gs", 0.0))),
                     "iha_batarya":     int(max(0, min(100, D.get("batt_pct", 0)))),
                     "iha_otonom":      int(_otonom_mu()),
-                    "iha_kilitlenme":  int(0),
-                    "hedef_merkez_X":  int(0),
-                    "hedef_merkez_Y":  int(0),
-                    "hedef_genislik":  int(0),
-                    "hedef_yukseklik": int(0),
+                    "iha_kilitlenme":  int(D.get("iha_kilitlenme", 0)),
+                    "hedef_merkez_X":  int(D.get("hedef_merkez_X", 0)),
+                    "hedef_merkez_Y":  int(D.get("hedef_merkez_Y", 0)),
+                    "hedef_genislik":  int(D.get("hedef_genislik", 0)),
+                    "hedef_yukseklik": int(D.get("hedef_yukseklik", 0)),
                     "gps_saati":       _gps_saati_dict(),
                 }
                 kod, cevap = _api_post("/api/telemetri_gonder", paket)
