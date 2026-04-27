@@ -464,7 +464,9 @@ def haritaya_qr_ciz(lat, lon):
 
 if EKSTRA_MODULLER_OK:
     UCAK_BASE_IMG   = ucak_base_ciz()   
-    UCAK_IKON_CACHE = {}                
+    UCAK_RAKIP_IMG  = ucak_rakip_ciz()
+    UCAK_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_BASE_IMG)
+    RAKIP_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_RAKIP_IMG)
     UCAK_TK_IMG     = None
     ucak_marker     = None
 
