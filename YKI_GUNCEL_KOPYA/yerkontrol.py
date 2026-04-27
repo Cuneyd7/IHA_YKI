@@ -1094,7 +1094,7 @@ def telemetry_ui_loop():
         _sv_set("gs",    f"{D.get('gs', 0):.1f} m/s")
         _sv_set("hdg",   f"{D.get('heading', 0)} °")
         _sv_set("hud_spd", f"{D.get('airspeed', 0):.1f} m/s")
-        _sv_set("mode",  D.get("mode", "---"))
+        _sv_set("mode",  f"MODE: {D.get('mode', '---').upper()}")
         _sv_set("lat",   f"{D.get('lat', 0.0):.5f} °")
         _sv_set("lon",   f"{D.get('lon', 0.0):.5f} °")
         _sv_set("sat",   str(D.get("sats", "--")))
