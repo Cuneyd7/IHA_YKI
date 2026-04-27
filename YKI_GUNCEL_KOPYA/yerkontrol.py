@@ -753,17 +753,17 @@ left_panel.grid(row=0, column=0, padx=(0,10), sticky="nsew")
 left_panel.grid_propagate(False) 
 left_panel.grid_rowconfigure(0, weight=1); left_panel.grid_rowconfigure(1, weight=1); left_panel.grid_columnconfigure(0, weight=1)
 
-cam_frame = ctk.CTkFrame(left_panel, corner_radius=12, fg_color="#040810", border_width=2, border_color="#38BDF8")
+cam_frame = ctk.CTkFrame(left_panel, corner_radius=12, fg_color="#000000", border_width=1, border_color="#000000")
 cam_frame.grid(row=0, column=0, pady=(0,5), sticky="nsew"); cam_frame.pack_propagate(False) 
-ctk.CTkLabel(cam_frame, text="[ İHA FPV KAMERA ]", font=FK, text_color="#38BDF8").pack(pady=6)
+ctk.CTkLabel(cam_frame, text="[ İHA FPV KAMERA ]", font=FK, text_color="#FFFFFF").pack(pady=6)
 
 if EKSTRA_MODULLER_OK:
     lbl_kamera = tk.Label(cam_frame, bg="#040810"); lbl_kamera.pack(expand=True) 
 
-map_frame = ctk.CTkFrame(left_panel, corner_radius=12, fg_color="#040810", border_width=2, border_color="#10B981")
+map_frame = ctk.CTkFrame(left_panel, corner_radius=12, fg_color="#000000", border_width=1, border_color="#000000")
 map_frame.grid(row=1, column=0, pady=(5,0), sticky="nsew"); map_frame.pack_propagate(False)
 map_hdr_row = ctk.CTkFrame(map_frame, fg_color="transparent"); map_hdr_row.pack(fill="x", padx=4, pady=(2,0))
-ctk.CTkLabel(map_hdr_row, text="[ CANLI UYDU HARİTASI ]", font=FK, text_color="#10B981").pack(side="left", padx=6, pady=3)
+ctk.CTkLabel(map_hdr_row, text="[ CANLI UYDU HARİTASI ]", font=FK, text_color="#FFFFFF").pack(side="left", padx=6, pady=3)
 
 def toggle_map_mode(event=None):
     if MAP_ODAK_MODU[0] == "IHA":
@@ -782,7 +782,7 @@ if EKSTRA_MODULLER_OK:
     map_widget.set_position(41.0, 28.9); map_widget.set_zoom(12)
 
 # ----- ORTA SÜTUN -----
-frame3d = ctk.CTkFrame(main, corner_radius=12, fg_color="#040810", border_width=2, border_color="#00ffcc")
+frame3d = ctk.CTkFrame(main, corner_radius=12, fg_color="#000000", border_width=1, border_color="#000000")
 frame3d.grid(row=0, column=1, padx=(0,10), pady=0, sticky="nsew")
 
 def _mav_bg(fn): threading.Thread(target=lambda: _safe_mav(fn), daemon=True).start()
@@ -799,7 +799,7 @@ def _takeoff(alt=50):
     if not baglanti: return
     _mav_bg(lambda: baglanti.mav.command_long_send(baglanti.target_system, baglanti.target_component, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0,0,0,0,0,0, alt))
 
-ctrl_bar = ctk.CTkFrame(frame3d, fg_color="#06111a", corner_radius=8, border_width=1, border_color="#0f2a4a")
+ctrl_bar = ctk.CTkFrame(frame3d, fg_color="#06111a", corner_radius=8, border_width=1, border_color="#000000")
 ctrl_bar.pack(fill="x", side="bottom", padx=10, pady=(0,10))
 ctrl_bar.pack_propagate(False)
 ctrl_bar.configure(height=90) 
@@ -813,7 +813,7 @@ _FKB = ctk.CTkFont(family="Consolas", size=13, weight="bold")
 # Satır 1
 ctk.CTkButton(ctrl_bar, text="🔓 ARM", fg_color="#14532D", hover_color="#15803d", font=_FKB, text_color="#86efac", command=_arm).grid(row=0, column=0, padx=6, pady=(8,4), sticky="ew")
 ctk.CTkButton(ctrl_bar, text="✈ AUTO", fg_color="#1e3a5f", hover_color="#2563eb", font=_FKB, text_color="#e2e8f0", command=lambda:_set_mode("AUTO")).grid(row=0, column=1, padx=6, pady=(8,4), sticky="ew")
-ctk.CTkLabel(ctrl_bar, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#00ffcc", fg_color="#04101a", corner_radius=8).grid(row=0, column=2, rowspan=2, padx=12, pady=8, sticky="nsew")
+ctk.CTkLabel(ctrl_bar, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF", fg_color="#04101a", corner_radius=8).grid(row=0, column=2, rowspan=2, padx=12, pady=8, sticky="nsew")
 ctk.CTkButton(ctrl_bar, text="⟳ LOITER", fg_color="#064E3B", hover_color="#059669", font=_FKB, text_color="#e2e8f0", command=lambda:_set_mode("LOITER")).grid(row=0, column=3, padx=6, pady=(8,4), sticky="ew")
 ctk.CTkButton(ctrl_bar, text="⬆ TAKEOFF", fg_color="#2e1065", hover_color="#7c3aed", font=_FKB, text_color="#e2e8f0", command=lambda:_takeoff(50)).grid(row=0, column=4, padx=6, pady=(8,4), sticky="ew")
 
@@ -827,18 +827,18 @@ if OPENGL_OK:
     lbl_hud = tk.Label(frame3d, bg="#040810"); lbl_hud.pack(fill="both", expand=True, padx=2, pady=(8,2))
 
 # ── SAĞ PANEL (Sıfır kasmayan scroll motoru) ────────────
-_right_border = ctk.CTkFrame(main, width=395, corner_radius=12, fg_color="#0b1320", border_width=1, border_color="#1e293b")
+_right_border = ctk.CTkFrame(main, width=395, corner_radius=12, fg_color="#000000", border_width=1, border_color="#000000")
 _right_border.grid(row=0, column=2, padx=0, pady=0, sticky="nsew")
 _right_border.grid_propagate(False)
 _right_border.grid_rowconfigure(0, weight=1); _right_border.grid_columnconfigure(0, weight=1)
 
-_vp = tk.Canvas(_right_border, bg="#0b1320", highlightthickness=0, bd=0, yscrollincrement=1)
+_vp = tk.Canvas(_right_border, bg="#000000", highlightthickness=0, bd=0, yscrollincrement=1)
 _vp.grid(row=0, column=0, sticky="nsew")
 
-_vsb = tk.Scrollbar(_right_border, orient="vertical", command=_vp.yview, width=5, bg="#050d1a", troughcolor="#050d1a", activebackground="#2563eb", relief="flat", bd=0)
+_vsb = tk.Scrollbar(_right_border, orient="vertical", command=_vp.yview, width=5, bg="#000000", troughcolor="#000000", activebackground="#2563eb", relief="flat", bd=0)
 _vsb.grid(row=0, column=1, sticky="ns"); _vp.configure(yscrollcommand=_vsb.set)
 
-right = ctk.CTkFrame(_vp, fg_color="#0b1320", corner_radius=0)
+right = ctk.CTkFrame(_vp, fg_color="#000000", corner_radius=0)
 right.grid_columnconfigure(0, weight=1)
 _win = _vp.create_window((0, 0), window=right, anchor="nw")
 
@@ -880,9 +880,9 @@ def _sb(w):
 _vp.bind("<MouseWheel>", _mw); _vp.bind("<Button-4>", _mw); _vp.bind("<Button-5>", _mw)
 app.after(600, lambda: _sb(right))
 
-# OPTİMİZASYON: Mavi ve Siyah Temalı Yeni Renk Gamutu
-BCOLS = {"#38BDF8": "#1E3A8A", "#60A5FA": "#1E40AF", "#00D1FF": "#0C4A6E", "#1E40AF": "#1E3A8A", "#3B82F6": "#1D4ED8", "#93C5FD": "#1E3A8A"}
-HCOLS = {"#38BDF8": "#0F172A", "#60A5FA": "#020617", "#00D1FF": "#082F49", "#1E40AF": "#0F172A", "#3B82F6": "#172554", "#93C5FD": "#0F172A"}
+# OPTİMİZASYON: Ghost (Siyah & Beyaz) Teması
+BCOLS = {"#38BDF8": "#000000", "#60A5FA": "#000000", "#00D1FF": "#000000", "#1E40AF": "#000000", "#3B82F6": "#000000", "#93C5FD": "#000000"}
+HCOLS = {"#38BDF8": "#000000", "#60A5FA": "#000000", "#00D1FF": "#000000", "#1E40AF": "#000000", "#3B82F6": "#000000", "#93C5FD": "#000000"}
 SECTION_FRAMES = []
 
 def section(parent, title, color, row):
@@ -959,52 +959,52 @@ div(c3); data_row(c3, "Yer Hızı", SV["gs"], lcolor="#00D1FF")
 div(c3); data_row(c3, "Pusula", SV["hdg"], lcolor="#00D1FF")
 ctk.CTkFrame(c3, height=4, fg_color="transparent").pack()
 
-c4 = section(right, "▸  KONUM & SİSTEM", "#3B82F6", 3)
-div(c4); data_row(c4, "Enlem", SV["lat"], lcolor="#93C5FD", vsize=16)
-data_row(c4, "Boylam", SV["lon"], lcolor="#93C5FD", vsize=16); div(c4)
+c4 = section(right, "▸  KONUM & SİSTEM", "#FFFFFF", 3)
+div(c4); data_row(c4, "Enlem", SV["lat"], lcolor="#FFFFFF", vsize=16)
+data_row(c4, "Boylam", SV["lon"], lcolor="#FFFFFF", vsize=16); div(c4)
 bf = ctk.CTkFrame(c4, fg_color="transparent"); bf.pack(fill="x", padx=16, pady=6)
-sf = ctk.CTkFrame(bf, fg_color="#0F172A", corner_radius=6, border_width=1, border_color="#1E3A8A")
+sf = ctk.CTkFrame(bf, fg_color="#000000", corner_radius=6, border_width=1, border_color="#FFFFFF")
 sf.pack(side="left", expand=True, fill="x", padx=(0,4))
-ctk.CTkLabel(sf, text="SAT (Uydu)", font=FU, text_color="#94a3b8").pack(pady=(2,0))
-ctk.CTkLabel(sf, textvariable=SV["sat"], font=ctk.CTkFont(family="Consolas", size=20, weight="bold"), text_color="#38BDF8").pack(pady=(0,2))
-vf = ctk.CTkFrame(bf, fg_color="#0F172A", corner_radius=6, border_width=1, border_color="#1E3A8A")
+ctk.CTkLabel(sf, text="SAT (Uydu)", font=FU, text_color="#FFFFFF").pack(pady=(2,0))
+ctk.CTkLabel(sf, textvariable=SV["sat"], font=ctk.CTkFont(family="Consolas", size=20, weight="bold"), text_color="#FFFFFF").pack(pady=(0,2))
+vf = ctk.CTkFrame(bf, fg_color="#000000", corner_radius=6, border_width=1, border_color="#FFFFFF")
 vf.pack(side="right", expand=True, fill="x", padx=(4,0))
-ctk.CTkLabel(vf, text="BATARYA", font=FU, text_color="#94a3b8").pack(pady=(2,0))
-lbl_vlt = ctk.CTkLabel(vf, textvariable=SV["vlt"], font=ctk.CTkFont(family="Consolas", size=20, weight="bold"), text_color="#38BDF8"); lbl_vlt.pack(pady=(0,2))
+ctk.CTkLabel(vf, text="BATARYA", font=FU, text_color="#FFFFFF").pack(pady=(2,0))
+lbl_vlt = ctk.CTkLabel(vf, textvariable=SV["vlt"], font=ctk.CTkFont(family="Consolas", size=20, weight="bold"), text_color="#FFFFFF"); lbl_vlt.pack(pady=(0,2))
 
-c5 = section(right, "▸  MOTOR TELEMETRİSİ", "#1E40AF", 4)
+c5 = section(right, "▸  MOTOR TELEMETRİSİ", "#FFFFFF", 4)
 mtr_top = ctk.CTkFrame(c5, fg_color="transparent"); mtr_top.pack(fill="x", padx=12, pady=(6,0))
-rpm_card = ctk.CTkFrame(mtr_top, fg_color="#020617", corner_radius=8, border_width=1, border_color="#1E3A8A")
+rpm_card = ctk.CTkFrame(mtr_top, fg_color="#000000", corner_radius=8, border_width=1, border_color="#FFFFFF")
 rpm_card.pack(side="left", expand=True, fill="x", padx=(0,4))
-ctk.CTkLabel(rpm_card, text="RPM", font=FU, text_color="#94a3b8").pack(pady=(4,0))
-ctk.CTkLabel(rpm_card, textvariable=SV["rpm"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#38BDF8").pack(pady=(0,4))
-thr_card = ctk.CTkFrame(mtr_top, fg_color="#020617", corner_radius=8, border_width=1, border_color="#1E3A8A")
+ctk.CTkLabel(rpm_card, text="RPM", font=FU, text_color="#FFFFFF").pack(pady=(4,0))
+ctk.CTkLabel(rpm_card, textvariable=SV["rpm"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF").pack(pady=(0,4))
+thr_card = ctk.CTkFrame(mtr_top, fg_color="#000000", corner_radius=8, border_width=1, border_color="#FFFFFF")
 thr_card.pack(side="right", expand=True, fill="x", padx=(4,0))
-ctk.CTkLabel(thr_card, text="THROTTLE", font=FU, text_color="#94a3b8").pack(pady=(4,0))
-ctk.CTkLabel(thr_card, textvariable=SV["thr"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#00D1FF").pack(pady=(0,4))
-thr_bar_bg = ctk.CTkFrame(c5, height=8, corner_radius=4, fg_color="#020617"); thr_bar_bg.pack(fill="x", padx=12, pady=(4,2))
-thr_bar = ctk.CTkFrame(thr_bar_bg, height=8, corner_radius=4, width=0, fg_color="#38BDF8"); thr_bar.place(x=0, y=0, relheight=1.0, relwidth=0.0)
-div(c5); data_row(c5, "Motor Akımı", SV["mamp"], lcolor="#60A5FA", vsize=18)
+ctk.CTkLabel(thr_card, text="THROTTLE", font=FU, text_color="#FFFFFF").pack(pady=(4,0))
+ctk.CTkLabel(thr_card, textvariable=SV["thr"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF").pack(pady=(0,4))
+thr_bar_bg = ctk.CTkFrame(c5, height=8, corner_radius=4, fg_color="#1a1a1a"); thr_bar_bg.pack(fill="x", padx=12, pady=(4,2))
+thr_bar = ctk.CTkFrame(thr_bar_bg, height=8, corner_radius=4, width=0, fg_color="#FFFFFF"); thr_bar.place(x=0, y=0, relheight=1.0, relwidth=0.0)
+div(c5); data_row(c5, "Motor Akımı", SV["mamp"], lcolor="#FFFFFF", vsize=18)
 ctk.CTkFrame(c5, height=4, fg_color="transparent").pack()
 
-c6 = section(right, "▸  BATARYA", "#3B82F6", 5)
+c6 = section(right, "▸  BATARYA", "#FFFFFF", 5)
 batt_top = ctk.CTkFrame(c6, fg_color="transparent"); batt_top.pack(fill="x", padx=12, pady=(6,0))
-volt_card = ctk.CTkFrame(batt_top, fg_color="#020617", corner_radius=8, border_width=1, border_color="#1E3A8A")
+volt_card = ctk.CTkFrame(batt_top, fg_color="#000000", corner_radius=8, border_width=1, border_color="#FFFFFF")
 volt_card.pack(side="left", expand=True, fill="x", padx=(0,4))
-ctk.CTkLabel(volt_card, text="GERİLİM", font=FU, text_color="#94a3b8").pack(pady=(4,0))
-lbl_bvolt = ctk.CTkLabel(volt_card, textvariable=SV["vlt"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#38BDF8"); lbl_bvolt.pack(pady=(0,4))
-bamp_card = ctk.CTkFrame(batt_top, fg_color="#020617", corner_radius=8, border_width=1, border_color="#1E3A8A")
+ctk.CTkLabel(volt_card, text="GERİLİM", font=FU, text_color="#FFFFFF").pack(pady=(4,0))
+lbl_bvolt = ctk.CTkLabel(volt_card, textvariable=SV["vlt"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF"); lbl_bvolt.pack(pady=(0,4))
+bamp_card = ctk.CTkFrame(batt_top, fg_color="#000000", corner_radius=8, border_width=1, border_color="#FFFFFF")
 bamp_card.pack(side="right", expand=True, fill="x", padx=(4,0))
-ctk.CTkLabel(bamp_card, text="AKIM", font=FU, text_color="#94a3b8").pack(pady=(4,0))
-ctk.CTkLabel(bamp_card, textvariable=SV["bamp"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#93C5FD").pack(pady=(0,4))
-batt_bar_bg = ctk.CTkFrame(c6, height=12, corner_radius=6, fg_color="#020617"); batt_bar_bg.pack(fill="x", padx=12, pady=(6,2))
-batt_bar_fill = ctk.CTkFrame(batt_bar_bg, height=12, corner_radius=6, fg_color="#38BDF8"); batt_bar_fill.place(x=0, y=0, relheight=1.0, relwidth=1.0)
-lbl_bpct_overlay = ctk.CTkLabel(batt_bar_bg, textvariable=SV["bpct"], font=ctk.CTkFont(family="Consolas", size=10, weight="bold"), text_color="#ffffff", fg_color="transparent")
+ctk.CTkLabel(bamp_card, text="AKIM", font=FU, text_color="#FFFFFF").pack(pady=(4,0))
+ctk.CTkLabel(bamp_card, textvariable=SV["bamp"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF").pack(pady=(0,4))
+batt_bar_bg = ctk.CTkFrame(c6, height=12, corner_radius=6, fg_color="#1a1a1a"); batt_bar_bg.pack(fill="x", padx=12, pady=(6,2))
+batt_bar_fill = ctk.CTkFrame(batt_bar_bg, height=12, corner_radius=6, fg_color="#FFFFFF"); batt_bar_fill.place(x=0, y=0, relheight=1.0, relwidth=1.0)
+lbl_bpct_overlay = ctk.CTkLabel(batt_bar_bg, textvariable=SV["bpct"], font=ctk.CTkFont(family="Consolas", size=10, weight="bold"), text_color="#000000", fg_color="transparent")
 lbl_bpct_overlay.place(relx=0.5, rely=0.5, anchor="center")
 div(c6)
 batt_bot = ctk.CTkFrame(c6, fg_color="transparent"); batt_bot.pack(fill="x", padx=12, pady=(4,6))
-ctk.CTkLabel(batt_bot, text="Kalan Kapasite", font=FU, text_color="#94a3b8").pack(side="left")
-ctk.CTkLabel(batt_bot, textvariable=SV["bmah"], font=ctk.CTkFont(family="Consolas", size=18, weight="bold"), text_color="#60A5FA").pack(side="right")
+ctk.CTkLabel(batt_bot, text="Kalan Kapasite", font=FU, text_color="#FFFFFF").pack(side="left")
+ctk.CTkLabel(batt_bot, textvariable=SV["bmah"], font=ctk.CTkFont(family="Consolas", size=18, weight="bold"), text_color="#FFFFFF").pack(side="right")
 
 # OPTİMİZASYON: Görüntü kısmında video yerine sabit görsel (test_image.jpeg) kullanılır.
 def _kamera_thread_fn():
