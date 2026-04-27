@@ -312,66 +312,11 @@ def _hud_arka_plan():
                 glRotatef(math.degrees( pitch_pos),     1, 0, 0)  
                 glRotatef(math.degrees(-roll_pos),      0, 0, 1)  
 
-                # UI-REVİZYON: 3D Model Rengi (Daha açık gri/beyaz tonu)
+                # UI-REVİZYON: HUD Kaldırıldı, Orijinal Model Görünümü Geri Getirildi
                 glEnable(GL_LIGHTING)
-                glColor3f(0.85, 0.88, 0.90) 
+                glColor3f(1.0, 1.0, 1.0) 
                 glCallList(model_list)
                 glDisable(GL_LIGHTING)
-
-                # UI-REVİZYON: HUD (Artificial Horizon, Speed, Altitude, Heading) Çizimi
-                # OpenGL'den 2D moduna geçiş
-                glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity()
-                glOrtho(0, HUD_W, HUD_H, 0, -1, 1)
-                glMatrixMode(GL_MODELVIEW); glPushMatrix(); glLoadIdentity()
-                glDisable(GL_DEPTH_TEST)
-                
-                def draw_hud():
-                    r_deg = math.degrees(roll_pos)
-                    p_deg = math.degrees(pitch_pos)
-                    cx, cy = HUD_W // 2, HUD_H // 2
-                    hud_col = (0, 255, 204) # Camgöbeği HUD rengi
-                    
-                    # 1. Artificial Horizon (Ufuk Çizgisi)
-                    glPushMatrix()
-                    glTranslatef(cx, cy, 0)
-                    glRotatef(-r_deg, 0, 0, 1)
-                    glTranslatef(0, p_deg * 5, 0)
-                    glColor3f(0, 1, 0.8)
-                    glBegin(GL_LINES)
-                    glVertex2f(-150, 0); glVertex2f(150, 0)
-                    # Pitch işaretleri
-                    for i in range(-30, 31, 10):
-                        if i == 0: continue
-                        y_off = -i * 5
-                        glVertex2f(-40, y_off); glVertex2f(40, y_off)
-                    glEnd()
-                    glPopMatrix()
-
-                    # 2. Speed Tape (Sol kenar)
-                    spd = D.get("airspeed", 0)
-                    glBegin(GL_LINE_LOOP)
-                    glColor3f(0, 0.8, 1)
-                    glVertex2f(40, 200); glVertex2f(80, 200); glVertex2f(80, 500); glVertex2f(40, 500)
-                    glEnd()
-                    # Hız göstergesi ve yazı
-                    
-                    # 3. Altitude Tape (Sağ kenar)
-                    alt = _msl_val[0]
-                    glBegin(GL_LINE_LOOP)
-                    glVertex2f(HUD_W-80, 200); glVertex2f(HUD_W-40, 200); glVertex2f(HUD_W-40, 500); glVertex2f(HUD_W-80, 500)
-                    glEnd()
-
-                    # 4. Heading Ribbon (Üst kısım)
-                    hdg = D.get("heading", 0)
-                    glBegin(GL_LINE_LOOP)
-                    glVertex2f(cx-100, 40); glVertex2f(cx+100, 40); glVertex2f(cx+100, 70); glVertex2f(cx-100, 70)
-                    glEnd()
-                
-                draw_hud()
-
-                glEnable(GL_DEPTH_TEST)
-                glMatrixMode(GL_PROJECTION); glPopMatrix()
-                glMatrixMode(GL_MODELVIEW); glPopMatrix()
 
                 if pbo_ok:
                     glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo_ids[pbo_idx])
@@ -695,7 +640,7 @@ SV = {
 FB = ctk.CTkFont(family="Consolas", size=22, weight="bold")
 FK = ctk.CTkFont(family="Consolas", size=14, weight="bold")
 FL = ctk.CTkFont(family="Consolas", size=14)
-FU = ctk.CTkFont(family="Consolas", size=11, weight="bold")
+FU = ctk.CTkFont(family="Consolas", size=14, weight="bold")
 
 # ══ SIFIR GECİKMELİ SEKME SİSTEMİ (Z-INDEX) ════════════════════════
 aktif_sekme = [None]
@@ -899,6 +844,7 @@ btn_disarm = ctk.CTkButton(ctrl_bar, text="🔒 DISARM", fg_color="#1a1a1a", fon
 btn_disarm.grid(row=1, column=0, padx=5, pady=(0,10), sticky="ew")
 
 btn_guided = ctk.CTkButton(ctrl_bar, text="🎯 GUIDED", font=_FKB, command=lambda:_set_mode("GUIDED"))
+btn_guided.grid(row=1, column=1, padx=5, pady=(0,10), sticky="ew")
 btn_land = ctk.CTkButton(ctrl_bar, text="🛬 LAND", fg_color="#334155", font=_FKB, command=lambda:_set_mode("LAND"))
 btn_land.grid(row=1, column=4, padx=5, pady=(0,10), sticky="ew")
 
@@ -907,9 +853,6 @@ lbl_hud_mode = ctk.CTkLabel(frame3d, textvariable=SV["mode"], font=ctk.CTkFont(f
 lbl_hud_mode.place(relx=0.5, rely=0.1, anchor="center")
 
 threading.Thread(target=lambda: app.after(1000, update_action_bar), daemon=True).start()
-
-if OPENGL_OK:
-    lbl_hud = tk.Label(frame3d, bg="#040810"); lbl_hud.pack(fill="both", expand=True, padx=2, pady=(8,2))
 
 # ── SAĞ PANEL (Sıfır kasmayan scroll motoru) ────────────
 _right_border = ctk.CTkFrame(main, width=395, corner_radius=12, fg_color="#000000", border_width=1, border_color="#000000")
