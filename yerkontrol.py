@@ -784,8 +784,10 @@ ctk.CTkLabel(map_hdr_row, text="[ CANLI UYDU HARİTASI ]", font=FK, text_color="
 def toggle_map_mode(event=None):
     if MAP_ODAK_MODU[0] == "IHA":
         MAP_ODAK_MODU[0] = "SERBEST"; lbl_map_mod.configure(text="✦ SERBEST", text_color="#F59E0B", fg_color="#2a1a00")
+        print("[MAP] Serbest Mod Aktif")
     else:
         MAP_ODAK_MODU[0] = "IHA"; lbl_map_mod.configure(text="✦ İHA KİLİT", text_color="#10B981", fg_color="#022c22")
+        print("[MAP] İHA Kilit Modu Aktif")
 
 lbl_map_mod = ctk.CTkLabel(map_hdr_row, text="✦ İHA KİLİT", font=ctk.CTkFont(family="Consolas", size=11, weight="bold"), text_color="#10B981", fg_color="#022c22", corner_radius=5, cursor="hand2", padx=6, pady=2)
 lbl_map_mod.pack(side="right", padx=6, pady=3)
