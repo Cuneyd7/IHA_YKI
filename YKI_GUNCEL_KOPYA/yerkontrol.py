@@ -1328,35 +1328,29 @@ def _build_panel(pwin=None):
         v = ctk.CTkLabel(f, text="---", font=ctk.CTkFont(family="Consolas",size=13,weight="bold"), text_color="#FFFFFF", anchor="e"); v.pack(side="right")
         return v
 
-    def psep(p): ctk.CTkFrame(p, height=1, fg_color="#1e3a5f").pack(fill="x", padx=10, pady=2)
-    def pgrid_sep(parent, row): ctk.CTkFrame(parent, height=1, fg_color="#1e3a5f").grid(row=row, column=0, padx=10, pady=3, sticky="ew")
+    def psep(p): ctk.CTkFrame(p, height=1, fg_color="#101827").pack(fill="x", padx=15, pady=4)
+    def pgrid_sep(parent, row): ctk.CTkFrame(parent, height=1, fg_color="#101827").grid(row=row, column=0, padx=15, pady=8, sticky="ew")
 
-    # ── SOL PANEL ─────────────────────────────────────────────
-    pleft = ctk.CTkFrame(pmain, corner_radius=12, fg_color="#000000", border_width=1, border_color="#FFFFFF")
-    pleft.grid(row=0, column=0, padx=(0,6), sticky="nsew"); pleft.grid_columnconfigure(0, weight=1)
+    # ── SOL PANEL (BAĞLANTI & OTURUM) ──────────────────────────
+    pleft = ctk.CTkFrame(pmain, corner_radius=15, fg_color="#030712", border_width=1, border_color="#1f2937")
+    pleft.grid(row=0, column=0, padx=(0,12), sticky="nsew"); pleft.grid_columnconfigure(0, weight=1)
 
-    ctk.CTkLabel(pleft, text="  SUNUCU AYARLARI", font=pFK, text_color="#FFFFFF", anchor="w").grid(row=0, column=0, padx=12, pady=(8,2), sticky="w")
+    ctk.CTkLabel(pleft, text="  SİSTEM BAĞLANTISI", font=pFK, text_color="#94a3b8", anchor="w").grid(row=0, column=0, padx=15, pady=(15,5), sticky="w")
 
-    url_f = ctk.CTkFrame(pleft, fg_color="transparent"); url_f.grid(row=1,column=0,padx=10,pady=2,sticky="ew")
-    ctk.CTkLabel(url_f, text="Sunucu URL:", font=pFL, text_color="#94a3b8").pack(anchor="w", padx=4)
-    url_entry = ctk.CTkEntry(url_f, font=pFL, fg_color="#050d1a", border_color="#1e3a5f", text_color="#00ffcc", height=30)
-    url_entry.insert(0, SERVER_URL); url_entry.pack(fill="x", padx=4, pady=2)
-
-    def set_url():
-        global SERVER_URL; SERVER_URL = url_entry.get().strip(); plog(f"URL: {SERVER_URL}")
-
-    ctk.CTkButton(url_f, text="Güncelle", font=pFU, height=26, fg_color="#1e3a5f", hover_color="#2563eb", command=set_url).pack(fill="x", padx=4, pady=2)
-    ctk.CTkFrame(pleft, height=1, fg_color="#1e3a5f").grid(row=2,column=0,padx=10,pady=3,sticky="ew")
-
-    cg = pcard(pleft, "▸  OTURUM AÇMA", "#38BDF8", 3)
-    ctk.CTkLabel(cg, text="Kullanıcı Adı:", font=pFL, text_color="#94a3b8", anchor="w").pack(padx=12, pady=(5,0), anchor="w")
-    kadi_e = ctk.CTkEntry(cg, font=pFL, fg_color="#050d1a", border_color="#1e3a5f", text_color="#fff", height=28, placeholder_text="takimkadi"); kadi_e.pack(fill="x", padx=12, pady=2)
-    ctk.CTkLabel(cg, text="Şifre:", font=pFL, text_color="#94a3b8", anchor="w").pack(padx=12, anchor="w")
-    sifre_e = ctk.CTkEntry(cg, font=pFL, fg_color="#050d1a", border_color="#1e3a5f", text_color="#fff", height=28, show="●", placeholder_text="şifre"); sifre_e.pack(fill="x", padx=12, pady=2)
+    url_f = ctk.CTkFrame(pleft, fg_color="transparent"); url_f.grid(row=1,column=0,padx=12,pady=5,sticky="ew")
+    url_entry = ctk.CTkEntry(url_f, font=pFL, fg_color="#090e1a", border_color="#1f2937", text_color="#00ffcc", height=32, placeholder_text="Sunucu URL")
+    url_entry.insert(0, SERVER_URL); url_entry.pack(side="left", fill="x", expand=True, padx=(0,5))
+    ctk.CTkButton(url_f, text="Set", font=pFU, height=32, width=60, fg_color="#1f2937", hover_color="#374151", command=set_url).pack(side="right")
     
-    g_text = f"✓  Takım #{TAKIM_NO[0]}" if TAKIM_NO[0] > 0 else "⬤  Giriş yapılmadı"
-    g_color = "#10B981" if TAKIM_NO[0] > 0 else "#64748b"
-    lbl_giris = ctk.CTkLabel(cg, text=g_text, font=pFU, text_color=g_color); lbl_giris.pack(pady=3)
+    pgrid_sep(pleft, 2)
+
+    cg = pcard(pleft, "▸  TAKIM OTURUMU", "#38BDF8", 3)
+    kadi_e = ctk.CTkEntry(cg, font=pFL, fg_color="#090e1a", border_color="#1f2937", text_color="#fff", height=32, placeholder_text="Kullanıcı Adı"); kadi_e.pack(fill="x", padx=15, pady=(10,5))
+    sifre_e = ctk.CTkEntry(cg, font=pFL, fg_color="#090e1a", border_color="#1f2937", text_color="#fff", height=32, show="●", placeholder_text="Şifre"); sifre_e.pack(fill="x", padx=15, pady=5)
+    
+    g_text = f"AKTİF: Takım #{TAKIM_NO[0]}" if TAKIM_NO[0] > 0 else "GİRİŞ BEKLENİYOR"
+    g_color = "#10B981" if TAKIM_NO[0] > 0 else "#4b5563"
+    lbl_giris = ctk.CTkLabel(cg, text=g_text, font=pFU, text_color=g_color); lbl_giris.pack(pady=5)
 
     def giris():
         def _g():
@@ -1367,16 +1361,16 @@ def _build_panel(pwin=None):
                     session_cookie[0] = r.cookies
                     n = int(r.text.strip()) if r.text.strip().isdigit() else 0
                     TAKIM_NO[0] = n
-                    app.after(0, lambda: lbl_giris.configure(text=f"✓  Takım #{n}", text_color="#10B981")); plog(f"Giriş OK — Takım #{n}"); _saat_al_fn()
-                else: app.after(0, lambda: lbl_giris.configure(text=f"✗  {r.status_code}", text_color="#f43f5e"))
+                    app.after(0, lambda: lbl_giris.configure(text=f"AKTİF: Takım #{n}", text_color="#10B981")); plog(f"Giriş OK — Takım #{n}"); _saat_al_fn()
+                else: app.after(0, lambda: lbl_giris.configure(text=f"HATA: {r.status_code}", text_color="#f43f5e"))
             except Exception as e:
-                app.after(0, lambda: lbl_giris.configure(text="✗  Bağlantı hatası", text_color="#f43f5e")); plog(str(e))
+                app.after(0, lambda: lbl_giris.configure(text="BAĞLANTI HATASI", text_color="#f43f5e")); plog(str(e))
         threading.Thread(target=_g, daemon=True).start()
 
-    ctk.CTkButton(cg, text="GİRİŞ YAP", font=pFK, height=32, fg_color="#1E3A8A", hover_color="#2563eb", command=giris).pack(fill="x", padx=12, pady=(2,8))
+    ctk.CTkButton(cg, text="SİSTEME GİRİŞ", font=pFK, height=36, fg_color="#2563eb", hover_color="#3b82f6", command=giris).pack(fill="x", padx=15, pady=(5,15))
 
-    cs = pcard(pleft, "▸  SUNUCU SAATİ", "#10B981", 4)
-    lbl_saat = ctk.CTkLabel(cs, text="--:--:--.---", font=ctk.CTkFont(family="Consolas",size=20,weight="bold"), text_color="#10B981"); lbl_saat.pack(pady=5)
+    cs = pcard(pleft, "▸  SENKRONİZASYON", "#10B981", 4)
+    lbl_saat = ctk.CTkLabel(cs, text="00:00:00.000", font=ctk.CTkFont(family="Consolas",size=22,weight="bold"), text_color="#10B981"); lbl_saat.pack(pady=10)
 
     def _saat_al_fn():
         def _s():
@@ -1387,102 +1381,68 @@ def _build_panel(pwin=None):
                 app.after(0, lambda: lbl_saat.configure(text=s)); plog(f"Sunucu saati: {s}")
         threading.Thread(target=_s, daemon=True).start()
 
-    ctk.CTkButton(cs, text="Saat Sorgula", font=pFU, height=26, fg_color="#064E3B", hover_color="#059669", command=_saat_al_fn).pack(fill="x", padx=12, pady=(0,8))
-    pgrid_sep(pleft, 6)
+    ctk.CTkButton(cs, text="SAATİ GÜNCELLE", font=pFU, height=28, fg_color="#064e3b", hover_color="#065f46", command=_saat_al_fn).pack(fill="x", padx=15, pady=(0,15))
+    
+    # Redundant YKİ Verileri kaldırıldı, Orta panelde zaten var.
+    ctk.CTkLabel(pleft, text="Sistem Durumu: ÇEVRİMİÇİ", font=pFS, text_color="#4b5563").grid(row=5, column=0, pady=20)
 
-    cm = pcard(pleft, "▸  KARAN YKİ VERİLERİ", "#f97316", 5)
-    lbl_p_lat  = prow2(cm, "Enlem"); psep(cm); lbl_p_lon  = prow2(cm, "Boylam"); psep(cm)
-    lbl_p_alt  = prow2(cm, "İrtifa AGL"); psep(cm); lbl_p_hdg  = prow2(cm, "Heading"); psep(cm)
-    lbl_p_mode = prow2(cm, "Mod"); psep(cm); lbl_p_batt = prow2(cm, "Batarya")
-    ctk.CTkFrame(cm, height=4, fg_color="transparent").pack()
-
-    # ── ORTA PANEL ────────────────────────────────────────────
-    pmid = ctk.CTkFrame(pmain, corner_radius=12, fg_color="#070f1e", border_width=1, border_color="#1e3a5f")
-    pmid.grid(row=0, column=1, padx=(0,6), sticky="nsew")
+    # ── ORTA PANEL (TELEMETRİ & TRAFİK) ────────────────────────
+    pmid = ctk.CTkFrame(pmain, corner_radius=15, fg_color="#030712", border_width=1, border_color="#1f2937")
+    pmid.grid(row=0, column=1, padx=(0,12), sticky="nsew")
     pmid.grid_rowconfigure(1, weight=1); pmid.grid_columnconfigure(0, weight=1)
 
-    thdr = ctk.CTkFrame(pmid, fg_color="transparent"); thdr.grid(row=0,column=0,padx=12,pady=(10,4),sticky="ew")
-    ctk.CTkLabel(thdr, text="📡  GÖNDERİLEN TELEMETRİ", font=pFK, text_color="#38BDF8").pack(side="left")
+    thdr = ctk.CTkFrame(pmid, fg_color="transparent"); thdr.grid(row=0,column=0,padx=15,pady=(15,10),sticky="ew")
+    ctk.CTkLabel(thdr, text="📡  CANLI TELEMETRİ AKIŞI", font=pFK, text_color="#38bdf8").pack(side="left")
     
     is_tel = telemetri_aktif[0]
-    hz_t = "● GÖNDERİLİYOR 1 Hz" if is_tel else "● DURDURULDU"
-    hz_c = "#10B981" if is_tel else "#64748b"
-    lbl_hz = ctk.CTkLabel(thdr, text=hz_t, font=pFU, text_color=hz_c); lbl_hz.pack(side="right", padx=6)
+    lbl_hz = ctk.CTkLabel(thdr, text="AKTİF (1 Hz)" if is_tel else "DURDURULDU", font=pFU, text_color="#10b981" if is_tel else "#6b7280"); lbl_hz.pack(side="right", padx=10)
 
     def toggle_tel():
         telemetri_aktif[0] = not telemetri_aktif[0]
         if telemetri_aktif[0]:
-            btn_tel.configure(text="⏹ Durdur", fg_color="#7c2d12", hover_color="#b91c1c")
-            lbl_hz.configure(text="● GÖNDERİLİYOR 1 Hz", text_color="#10B981"); plog("Telemetri başladı")
+            btn_tel.configure(text="DURDUR", fg_color="#991b1b")
+            lbl_hz.configure(text="AKTİF (1 Hz)", text_color="#10b981")
         else:
-            btn_tel.configure(text="▶ Başlat", fg_color="#064E3B", hover_color="#059669")
-            lbl_hz.configure(text="● DURDURULDU", text_color="#64748b"); plog("Telemetri durdu")
+            btn_tel.configure(text="BAŞLAT", fg_color="#064e3b")
+            lbl_hz.configure(text="DURDURULDU", text_color="#6b7280")
 
-    btn_t = "⏹ Durdur" if is_tel else "▶ Başlat"
-    btn_f = "#7c2d12" if is_tel else "#064E3B"
-    btn_h = "#b91c1c" if is_tel else "#059669"
-    btn_tel = ctk.CTkButton(thdr, text=btn_t, font=pFU, height=28, width=110, 
-                            fg_color=btn_f, hover_color=btn_h, command=toggle_tel)
-    btn_tel.pack(side="right", padx=4)
+    btn_tel = ctk.CTkButton(thdr, text="DURDUR" if is_tel else "BAŞLAT", font=pFU, height=30, width=90, 
+                            fg_color="#991b1b" if is_tel else "#064e3b", hover_color="#b91c1c", command=toggle_tel)
+    btn_tel.pack(side="right")
 
-    tbox = ctk.CTkScrollableFrame(pmid, fg_color="#030810", scrollbar_button_color="#1e3a5f", scrollbar_fg_color="#030810")
-    tbox.grid(row=1, column=0, padx=10, pady=(0,6), sticky="nsew")
-    tbox.grid_columnconfigure(0, weight=1); tbox.grid_columnconfigure(1, weight=1)
+    tbox = ctk.CTkFrame(pmid, fg_color="transparent")
+    tbox.grid(row=1, column=0, padx=15, pady=0, sticky="nsew")
+    tbox.grid_columnconfigure((0,1,2), weight=1)
 
     PSV = {k: tk.StringVar(value="---") for k in ["enlem","boylam","irtifa","dikilme","yonelme","yatis","hiz","batarya","otonom","gps_s","http_kod","takim"]}
 
-    def ptf(row, col, label, sv, color="#FFFFFF"):
-        f = ctk.CTkFrame(tbox, fg_color="#000000", corner_radius=8, border_width=1, border_color="#FFFFFF")
-        f.grid(row=row, column=col, padx=5, pady=4, sticky="ew")
-        ctk.CTkLabel(f, text=label, font=pFU, text_color="#FFFFFF", anchor="w").pack(anchor="w", padx=10, pady=(5,0))
-        ctk.CTkLabel(f, textvariable=sv, font=ctk.CTkFont(family="Consolas",size=16,weight="bold"), text_color="#FFFFFF", anchor="e").pack(anchor="e", padx=10, pady=(0,5))
+    def ptf(row, col, label, sv, color="#94a3b8"):
+        f = ctk.CTkFrame(tbox, fg_color="#090e1a", corner_radius=10, border_width=1, border_color="#1f2937")
+        f.grid(row=row, column=col, padx=4, pady=4, sticky="ew")
+        ctk.CTkLabel(f, text=label, font=pFU, text_color=color).pack(pady=(8,0))
+        ctk.CTkLabel(f, textvariable=sv, font=ctk.CTkFont(family="Consolas",size=18,weight="bold"), text_color="#f8fafc").pack(pady=(0,8))
 
-    ptf(0,0,"İHA ENLEM",   PSV["enlem"],   "#38BDF8"); ptf(0,1,"İHA BOYLAM",  PSV["boylam"],  "#38BDF8")
-    ptf(1,0,"İRTİFA AGL",  PSV["irtifa"],  "#14B8A6"); ptf(1,1,"HEADING",     PSV["yonelme"], "#14B8A6")
-    ptf(2,0,"DİKİLME",     PSV["dikilme"], "#a78bfa"); ptf(2,1,"YATIŞ",       PSV["yatis"],   "#a78bfa")
-    ptf(3,0,"HIZ (m/s)",   PSV["hiz"],     "#10B981"); ptf(3,1,"BATARYA",     PSV["batarya"], "#10B981")
-    ptf(4,0,"OTONOM",      PSV["otonom"],  "#f97316"); ptf(4,1,"GPS SAATİ",   PSV["gps_s"],   "#facc15")
-    ptf(5,0,"HTTP KOD",    PSV["http_kod"],"#64748b"); ptf(5,1,"TAKIM NO",    PSV["takim"],   "#f43f5e")
+    ptf(0,0,"ENLEM",      PSV["enlem"]);     ptf(0,1,"BOYLAM",     PSV["boylam"]);    ptf(0,2,"GPS SAATİ",  PSV["gps_s"])
+    ptf(1,0,"İRTİFA",     PSV["irtifa"]);    ptf(1,1,"YÖNELME",    PSV["yonelme"]);   ptf(1,2,"HIZ (m/s)",  PSV["hiz"])
+    ptf(2,0,"DİKİLME",    PSV["dikilme"]);   ptf(2,1,"YATIŞ",      PSV["yatis"]);     ptf(2,2,"BATARYA",    PSV["batarya"])
+    
+    info_f = ctk.CTkFrame(pmid, height=40, fg_color="#0f172a", corner_radius=8)
+    info_f.grid(row=2, column=0, padx=15, pady=10, sticky="ew")
+    ctk.CTkLabel(info_f, text="OTONOM DURUM:", font=pFU, text_color="#94a3b8").pack(side="left", padx=(15,5))
+    ctk.CTkLabel(info_f, textvariable=PSV["otonom"], font=pFK, text_color="#f97316").pack(side="left")
+    ctk.CTkLabel(info_f, text="HTTP:", font=pFU, text_color="#94a3b8").pack(side="left", padx=(20,5))
+    ctk.CTkLabel(info_f, textvariable=PSV["http_kod"], font=pFK, text_color="#38bdf8").pack(side="left")
 
-    ctk.CTkLabel(pmid, text="  👁  DİĞER TAKIMLAR", font=pFK, text_color="#f97316", anchor="w").grid(row=2,column=0,padx=12,pady=(6,2),sticky="w")
-    pmid.grid_rowconfigure(3, weight=0)
+    ctk.CTkLabel(pmid, text="  👁  TRAFİKTEKİ DİĞER TAKIMLAR", font=pFK, text_color="#94a3b8", anchor="w").grid(row=3,column=0,padx=15,pady=(10,5),sticky="w")
+    
+    diger_f = ctk.CTkScrollableFrame(pmid, height=220, fg_color="#090e1a", scrollbar_button_color="#1f2937", scrollbar_fg_color="#030712")
+    diger_f.grid(row=4, column=0, padx=15, pady=(0,15), sticky="nsew"); diger_f.grid_columnconfigure(0, weight=1)
 
-    diger_f = ctk.CTkScrollableFrame(pmid, height=190, fg_color="#030810", scrollbar_button_color="#1e3a5f", scrollbar_fg_color="#030810")
-    diger_f.grid(row=3, column=0, padx=10, pady=(0,8), sticky="ew"); diger_f.grid_columnconfigure(0, weight=1)
-
-    _dt_rows  = []   # mevcut satır label listesi
-    _dt_count = [-1]  # son satır sayısı
-
-    def _diger_yaz(liste):
-        n = len(liste) if liste else 0
-        df = _W["diger_f"]
-        if n != _W["dt_count"][0]:
-            for w in df.winfo_children(): w.destroy()
-            _W["dt_rows"].clear(); _W["dt_count"][0] = n
-            if not liste:
-                ctk.CTkLabel(df, text="  — Veri yok —", font=pFL, text_color="#334155").pack(pady=6); return
-            hdr_r = ctk.CTkFrame(df, fg_color="#0d1829", corner_radius=6); hdr_r.pack(fill="x", padx=4)
-            for col,(txt,w) in enumerate([("Takım",50),("Enlem",100),("Boylam",100),("İrtifa",60),("Yönel.",55),("Hız",50),("∆T ms",60)]):
-                ctk.CTkLabel(hdr_r, text=txt, font=pFU, text_color="#38BDF8", width=w, anchor="center").grid(row=0, column=col, padx=3, pady=2)
-            for i, t in enumerate(liste):
-                row_f = ctk.CTkFrame(df, fg_color="#050d1a" if i%2==0 else "#070f1e", corner_radius=0); row_f.pack(fill="x", padx=4)
-                row_lbls = []
-                vals = [str(t.get("takim_numarasi","?")), f"{t.get('iha_enlem',0):.5f}", f"{t.get('iha_boylam',0):.5f}", f"{t.get('iha_irtifa',0):.1f}m", f"{t.get('iha_yonelme',0):.0f}°", f"{t.get('iha_hizi',0):.1f}", f"{t.get('zaman_farki',0)}"]
-                for c,(v,w) in enumerate(zip(vals, [50,100,100,60,55,50,60])):
-                    lbl = ctk.CTkLabel(row_f, text=v, font=pFS, text_color="#cbd5e1", width=w, anchor="center")
-                    lbl.grid(row=0, column=c, padx=3, pady=2); row_lbls.append(lbl)
-                _W["dt_rows"].append(row_lbls)
-        elif liste:
-            for i, t in enumerate(liste):
-                vals = [str(t.get("takim_numarasi","?")), f"{t.get('iha_enlem',0):.5f}", f"{t.get('iha_boylam',0):.5f}", f"{t.get('iha_irtifa',0):.1f}m", f"{t.get('iha_yonelme',0):.0f}°", f"{t.get('iha_hizi',0):.1f}", f"{t.get('zaman_farki',0)}"]
-                if i < len(_W["dt_rows"]):
-                    for lbl, v in zip(_W["dt_rows"][i], vals): lbl.configure(text=v)
-
-    # ── SAĞ PANEL ─────────────────────────────────────────────
-    pright = ctk.CTkFrame(pmain, corner_radius=12, fg_color="#070f1e", border_width=1, border_color="#1e3a5f")
+    # ── SAĞ PANEL (OPERASYON & LOG) ────────────────────────────
+    pright = ctk.CTkFrame(pmain, corner_radius=15, fg_color="#030712", border_width=1, border_color="#1f2937")
     pright.grid(row=0, column=2, sticky="nsew"); pright.grid_columnconfigure(0, weight=1)
 
-    ctk.CTkLabel(pright, text=" OTONOM GÖREVLER", font=pFK, text_color="#facc15", anchor="w").grid(row=0, column=0, padx=12, pady=(8,4), sticky="w")
+    ctk.CTkLabel(pright, text=" GÖREV KONTROL", font=pFK, text_color="#94a3b8", anchor="w").grid(row=0, column=0, padx=15, pady=(15,5), sticky="w")
 
     ck = pcard(pright, "▸  KİLİTLENME BİLGİSİ", "#f43f5e", 1)
     otonom_k = tk.IntVar(value=1)
@@ -1522,45 +1482,44 @@ def _build_panel(pwin=None):
 
     ctk.CTkFrame(pright, height=1, fg_color="#1e3a5f").grid(row=4, column=0, padx=10, pady=3, sticky="ew")
 
-    cqr = pcard(pright, "▸  QR KOORDİNATI", "#a78bfa", 5)
-    lbl_qre = prow2(cqr, "Enlem"); psep(cqr); lbl_qrb = prow2(cqr, "Boylam")
+    cmiss = pcard(pright, "▸  GÖREV VERİLERİ", "#a78bfa", 5)
+    lbl_qre = prow2(cmiss, "QR Enlem"); psep(cmiss); lbl_qrb = prow2(cmiss, "QR Boylam")
+    
     def qr_al():
         def _q():
             kod, d = _api_get("/api/qr_koordinati")
             if kod == 200:
-                lat = d.get("qrEnlem", 0.0)
-                lon = d.get("qrBoylam", 0.0)
+                lat, lon = d.get("qrEnlem", 0.0), d.get("qrBoylam", 0.0)
                 app.after(0, lambda: [lbl_qre.configure(text=str(lat)), lbl_qrb.configure(text=str(lon)), haritaya_qr_ciz(lat, lon)])
-                plog(f"QR: {lat} {lon}")
             else: plog(f"QR hata: {kod}")
         threading.Thread(target=_q, daemon=True).start()
-    ctk.CTkButton(cqr, text="QR Konum Al", font=pFU, height=26, fg_color="#2e1065", hover_color="#7c3aed", command=qr_al).pack(fill="x", padx=12, pady=(0,8))
 
-    ctk.CTkFrame(pright, height=1, fg_color="#1e3a5f").grid(row=6, column=0, padx=10, pady=3, sticky="ew")
+    hss_tb = ctk.CTkTextbox(cmiss, height=80, font=pFS, fg_color="#090e1a", text_color="#fca5a5", border_color="#1f2937", border_width=1)
+    hss_tb.pack(fill="x", padx=12, pady=5); hss_tb.insert("end","HSS Bekleniyor..."); hss_tb.configure(state="disabled")
 
-    chss = pcard(pright, "▸  HAVA SAVUNMA SİSTEMLERİ", "#f43f5e", 7)
-    hss_tb = ctk.CTkTextbox(chss, height=100, font=pFS, fg_color="#050d1a", text_color="#fca5a5", border_color="#4c0519", border_width=1)
-    hss_tb.pack(fill="x", padx=12, pady=4); hss_tb.insert("end","— Sorgulanmadı —"); hss_tb.configure(state="disabled")
     def hss_al():
         def _h():
             kod, d = _api_get("/api/hss_koordinatlari")
             if kod == 200:
                 lst = d.get("hss_koordinat_bilgileri",[])
-                txt = chr(10).join([f"ID:{h.get('id')}  ({h.get('hssEnlem',0):.5f}, {h.get('hssBoylam',0):.5f})  r={h.get('hssYaricap')}m" for h in lst]) if lst else '— Aktif HSS yok —'
+                txt = chr(10).join([f"ID:{h.get('id')} ({h.get('hssEnlem',0):.4f}, {h.get('hssBoylam',0):.4f}) r={h.get('hssYaricap')}m" for h in lst]) or 'Aktif HSS yok'
                 def _u():
-                    hss_tb.configure(state="normal"); hss_tb.delete("1.0","end")
-                    hss_tb.insert("end",txt); hss_tb.configure(state="disabled")
+                    hss_tb.configure(state="normal"); hss_tb.delete("1.0","end"); hss_tb.insert("end",txt); hss_tb.configure(state="disabled")
                     haritaya_hss_ciz(lst) 
-                app.after(0,_u); plog(f"HSS: {len(lst)} sistem")
+                app.after(0,_u)
             else: plog(f"HSS hata: {kod}")
         threading.Thread(target=_h, daemon=True).start()
-    ctk.CTkButton(chss, text="HSS Konum Al", font=pFU, height=26, fg_color="#4c0519", hover_color="#be123c", command=hss_al).pack(fill="x", padx=12, pady=(0,6))
 
-    ctk.CTkFrame(pright, height=1, fg_color="#1e3a5f").grid(row=8, column=0, padx=10, pady=3, sticky="ew")
+    btn_row = ctk.CTkFrame(cmiss, fg_color="transparent")
+    btn_row.pack(fill="x", padx=12, pady=(5,10))
+    ctk.CTkButton(btn_row, text="QR AL", font=pFU, height=30, fg_color="#1f2937", command=qr_al).pack(side="left", fill="x", expand=True, padx=(0,4))
+    ctk.CTkButton(btn_row, text="HSS AL", font=pFU, height=30, fg_color="#1f2937", command=hss_al).pack(side="right", fill="x", expand=True, padx=(4,0))
 
-    ctk.CTkLabel(pright, text="  📋 SISTEM LOGU", font=pFK, text_color="#64748b", anchor="w").grid(row=9, column=0, padx=12, pady=(6,2), sticky="w")
-    log_tb = ctk.CTkTextbox(pright, height=130, font=pFS, fg_color="#020810", text_color="#475569", border_color="#0f172a", border_width=1)
-    log_tb.grid(row=10, column=0, padx=10, pady=(0,8), sticky="ew"); log_tb.configure(state="disabled")
+    pgrid_sep(pright, 6)
+
+    ctk.CTkLabel(pright, text="  SİSTEM GÜNLÜĞÜ", font=pFK, text_color="#94a3b8", anchor="w").grid(row=7, column=0, padx=15, pady=(5,5), sticky="w")
+    log_tb = ctk.CTkTextbox(pright, height=180, font=pFS, fg_color="#020617", text_color="#64748b", border_color="#1f2937", border_width=1)
+    log_tb.grid(row=8, column=0, padx=15, pady=(0,15), sticky="ew"); log_tb.configure(state="disabled")
 
     # Update döngüsü için referansları kaydet
     _W["labels"]["lat"] = lbl_p_lat; _W["labels"]["lon"] = lbl_p_lon
