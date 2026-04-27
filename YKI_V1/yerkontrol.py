@@ -446,8 +446,8 @@ def haritaya_hss_ciz(hss_listesi):
             path.append((lat + d_lat, lon + d_lon))
         
         try:
-            # OPTİMİZASYON: İçi dolu (Polygon) HSS bölgesi
-            poly = map_widget.set_polygon(path, outline_color="#ef4444", fill_color="#450a0a", border_width=2)
+            # OPTİMİZASYON: Daha belirgin İçi dolu (Polygon) HSS bölgesi
+            poly = map_widget.set_polygon(path, outline_color="#ef4444", fill_color="#7f1d1d", border_width=2)
             HSS_POLI_NESNELERI.append(poly)
             m = map_widget.set_marker(lat, lon, text=f"HSS ID:{h.get('id')} (r={r_m}m)")
             HSS_POLI_NESNELERI.append(m)
