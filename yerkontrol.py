@@ -1305,9 +1305,19 @@ def map_loop():
                 try: ucak_marker.change_icon(yeni_ikon); ucak_marker.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
                 except: pass
 
-                # OPTİMİZASYON: Sadece İHA KİLİT modu aktifse haritayı merkezle
+                # AKILLI DENETİM: Eğer kullanıcı haritayı elle kaydırdıysa otomatik SERBEST moda geç
+                _curr_map_pos = map_widget.get_position()
+                _last_set_pos = getattr(map_loop, '_last_set_pos', _curr_map_pos)
+                _map_dist = math.sqrt((_curr_map_pos[0]-_last_set_pos[0])**2 + (_curr_map_pos[1]-_last_set_pos[1])**2)
+                
+                if _map_dist > 0.0005 and MAP_ODAK_MODU[0] == "IHA":
+                    toggle_map_mode() # Otomatik serbest moda geç
+                
+                # Sadece İHA KİLİT modu aktifse haritayı merkezle
                 if MAP_ODAK_MODU[0] == "IHA":
-                    try: map_widget.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
+                    try: 
+                        map_widget.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
+                        map_loop._last_set_pos = (MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
                     except: pass
                 
                 LAST_MAP_UPDATE_TIME[0] = _now_map
