@@ -525,37 +525,89 @@ def _otonom_mu():
     m = D.get("mode","").upper()
     return 1 if any(k in m for k in ["AUTO","GUIDED","LOITER","RTL","CIRCLE"]) else 0
 
-def _telemetri_thread():
-    while True:
-        if telemetri_aktif[0] and TAKIM_NO[0] > 0:
-            # --- KUSURSUZ OPTİMİZASYON: Tüm değerler JSON formatı için int ve float olarak kesinleştirildi ---
-            paket = {
-                "takim_numarasi":  int(TAKIM_NO[0]),
-                "iha_enlem":       float(D.get("lat", 0.0)),
-                "iha_boylam":      float(D.get("lon", 0.0)),
-                "iha_irtifa":      int(_agl_val[0]),
-                "iha_dikilme":     int(max(-90, min(90, math.degrees(D.get("pitch", 0.0))))),
-                "iha_yonelme":     int(D.get("heading", 0)) % 360,
-                "iha_yatis":       int(max(-90, min(90, math.degrees(D.get("roll", 0.0))))),
-                "iha_hiz":         int(max(0, D.get("gs", 0.0))),
-                "iha_batarya":     int(max(0, min(100, D.get("batt_pct", 0)))),
-                "iha_otonom":      int(_otonom_mu()),
-                "iha_kilitlenme":  int(0),
-                "hedef_merkez_X":  int(0),
-                "hedef_merkez_Y":  int(0),
-                "hedef_genislik":  int(0),
-                "hedef_yukseklik": int(0),
-                "gps_saati":       _gps_saati_dict(),
-            }
-            kod, cevap = _api_post("/api/telemetri_gonder", paket)
-            if kod == 200:
-                diger_takimlar[0] = cevap.get("konumBilgileri", [])
-                sunucu_zaman[0]   = cevap.get("sunucusaati", {})
-            elif kod not in (0,):
-                plog(f"Telemetri hata: {kod}")
-        _time.sleep(1.0)
+# OPTİMİZASYON: Asenkron telemetri — aiohttp ile ağ gecikmesi diğer thread'leri ASLA bloklamaz
+async def _async_telemetri_loop():
+    """Asyncio event loop içinde çalışır — sıfır bloklama garantisi."""
+    _timeout = aiohttp.ClientTimeout(total=2.0) if AIOHTTP_OK else None
+    async with aiohttp.ClientSession(timeout=_timeout) as session:
+        while True:
+            if telemetri_aktif[0] and TAKIM_NO[0] > 0:
+                paket = {
+                    "takim_numarasi":  int(TAKIM_NO[0]),
+                    "iha_enlem":       float(D.get("lat", 0.0)),
+                    "iha_boylam":      float(D.get("lon", 0.0)),
+                    "iha_irtifa":      int(_agl_val[0]),
+                    "iha_dikilme":     int(max(-90, min(90, math.degrees(D.get("pitch", 0.0))))),
+                    "iha_yonelme":     int(D.get("heading", 0)) % 360,
+                    "iha_yatis":       int(max(-90, min(90, math.degrees(D.get("roll", 0.0))))),
+                    "iha_hiz":         int(max(0, D.get("gs", 0.0))),
+                    "iha_batarya":     int(max(0, min(100, D.get("batt_pct", 0)))),
+                    "iha_otonom":      int(_otonom_mu()),
+                    "iha_kilitlenme":  int(0),
+                    "hedef_merkez_X":  int(0),
+                    "hedef_merkez_Y":  int(0),
+                    "hedef_genislik":  int(0),
+                    "hedef_yukseklik": int(0),
+                    "gps_saati":       _gps_saati_dict(),
+                }
+                try:
+                    # OPTİMİZASYON: Cookie'yi header olarak gönder (aiohttp uyumu)
+                    cookies = {}
+                    if session_cookie[0]:
+                        cookies = {c.name: c.value for c in session_cookie[0]}
+                    async with session.post(f"{SERVER_URL}/api/telemetri_gonder",
+                                            json=paket, cookies=cookies) as resp:
+                        son_cevap_kodu[0] = str(resp.status)
+                        if resp.status == 200:
+                            cevap = await resp.json()
+                            diger_takimlar[0] = cevap.get("konumBilgileri", [])
+                            sunucu_zaman[0]   = cevap.get("sunucusaati", {})
+                        elif resp.status not in (0,):
+                            plog(f"Telemetri hata: {resp.status}")
+                except Exception as e:
+                    son_cevap_kodu[0] = "ERR"
+                    plog(f"Async telemetri hata: {e}")
+            await asyncio.sleep(1.0)
 
-if REQUESTS_OK: threading.Thread(target=_telemetri_thread, daemon=True).start()
+def _start_async_telemetri():
+    """Asyncio event loop'u ayrı thread'de çalıştırır."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(_async_telemetri_loop())
+
+# OPTİMİZASYON: aiohttp varsa async kullan, yoksa eski requests fallback
+if AIOHTTP_OK:
+    threading.Thread(target=_start_async_telemetri, daemon=True).start()
+elif REQUESTS_OK:
+    def _telemetri_thread_fallback():
+        while True:
+            if telemetri_aktif[0] and TAKIM_NO[0] > 0:
+                paket = {
+                    "takim_numarasi":  int(TAKIM_NO[0]),
+                    "iha_enlem":       float(D.get("lat", 0.0)),
+                    "iha_boylam":      float(D.get("lon", 0.0)),
+                    "iha_irtifa":      int(_agl_val[0]),
+                    "iha_dikilme":     int(max(-90, min(90, math.degrees(D.get("pitch", 0.0))))),
+                    "iha_yonelme":     int(D.get("heading", 0)) % 360,
+                    "iha_yatis":       int(max(-90, min(90, math.degrees(D.get("roll", 0.0))))),
+                    "iha_hiz":         int(max(0, D.get("gs", 0.0))),
+                    "iha_batarya":     int(max(0, min(100, D.get("batt_pct", 0)))),
+                    "iha_otonom":      int(_otonom_mu()),
+                    "iha_kilitlenme":  int(0),
+                    "hedef_merkez_X":  int(0),
+                    "hedef_merkez_Y":  int(0),
+                    "hedef_genislik":  int(0),
+                    "hedef_yukseklik": int(0),
+                    "gps_saati":       _gps_saati_dict(),
+                }
+                kod, cevap = _api_post("/api/telemetri_gonder", paket)
+                if kod == 200:
+                    diger_takimlar[0] = cevap.get("konumBilgileri", [])
+                    sunucu_zaman[0]   = cevap.get("sunucusaati", {})
+                elif kod not in (0,):
+                    plog(f"Telemetri hata: {kod}")
+            _time.sleep(1.0)
+    threading.Thread(target=_telemetri_thread_fallback, daemon=True).start()
 
 # ══════════════════════════════════════════════════════════════
 #  GUI (ARAYÜZ BAŞLATMA VE STRİNGBELLEKLERİ)
