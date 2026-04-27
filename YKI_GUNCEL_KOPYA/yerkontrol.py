@@ -58,6 +58,11 @@ except ImportError:
     print("Modül eksik! 'pip install pygame-ce PyOpenGL' çalıştırın.")
 
 # ══════════════════════════════════════════════════════════════
+#  DOSYA YOLLARI VE DİZİN YAPILANDIRMASI
+# ══════════════════════════════════════════════════════════════
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ══════════════════════════════════════════════════════════════
 #  OBJ YÜKLEYİCİ VE 3D GEOMETRİ
 # ══════════════════════════════════════════════════════════════
 class ObjLoader:
@@ -359,7 +364,7 @@ if OPENGL_OK: threading.Thread(target=_hud_arka_plan, daemon=True).start()
 # ══════════════════════════════════════════════════════════════
 #  AYARLAR, DEĞİŞKENLER & HARİTA SİMGESİ
 # ══════════════════════════════════════════════════════════════
-OBJ_FILE  = "karan.obj"   
+OBJ_FILE  = os.path.join(BASE_DIR, "karan.obj")   
 OBJ_SCALE = 1            
 D = {
     "roll":0.0, "pitch":0.0, "yaw":0.0, "rollspeed":0.0, "pitchspeed":0.0, "yawspeed":0.0,
@@ -953,7 +958,7 @@ def _kamera_thread_fn():
     try:
         # Klasör içindeki yeni eklenen görseli oku
         # Kullanıcı 'test_image.jpeg' olarak eklediği için bu ismi hedefliyoruz
-        img_path = "test_image.jpeg"
+        img_path = os.path.join(BASE_DIR, "test_image.jpeg")
         frame = cv2.imread(img_path)
         
         if frame is not None:
