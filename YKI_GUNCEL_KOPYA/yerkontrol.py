@@ -850,10 +850,19 @@ btn_guided.grid(row=1, column=1, padx=5, pady=(0,10), sticky="ew")
 btn_land = ctk.CTkButton(ctrl_bar, text="🛬 LAND", fg_color="#334155", font=_FKB, command=lambda:_set_mode("LAND"))
 btn_land.grid(row=1, column=4, padx=5, pady=(0,10), sticky="ew")
 
-# HUD Ortasındaki Mod Etiketi
-lbl_hud_mode = ctk.CTkLabel(frame3d, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=24, weight="bold"), text_color="#00FFCC", fg_color="transparent")
-lbl_hud_mode.place(relx=0.5, rely=0.1, anchor="center")
+# UI-REVİZYON: HUD Eş Zamanlı Mod Göstergesi (Glass Cockpit Style)
+lbl_hud_mode = ctk.CTkLabel(frame3d, 
+    textvariable=SV["mode"], 
+    font=ctk.CTkFont(family="Consolas", size=28, weight="bold"), 
+    text_color="#00FFCC", 
+    fg_color=("#0a1220"), # Yarı şeffaf koyu arka plan
+    corner_radius=8,
+    padx=15,
+    pady=5
+)
+lbl_hud_mode.place(relx=0.5, rely=0.08, anchor="n")
 
+# Mod bilgisinin önüne "MODE:" ibaresini eklemek için telemetry_ui_loop güncellenecek
 if OPENGL_OK:
     lbl_hud = tk.Label(frame3d, bg="#040810")
     lbl_hud.pack(fill="both", expand=True, padx=2, pady=(8,2))
