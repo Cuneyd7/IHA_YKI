@@ -647,7 +647,7 @@ sekme_btnler = {}
 def sekme_ac(ad):
     aktif_sekme[0] = ad
     for k, b in sekme_btnler.items():
-        if k == ad: b.configure(fg_color="#333333", text_color="#FFFFFF")
+        if k == ad: b.configure(fg_color="#1e3a5f", text_color="#FFFFFF")
         else: b.configure(fg_color="transparent", text_color="#FFFFFF")
         
     if ad in _popout_windows and _popout_windows[ad].winfo_exists():
@@ -739,43 +739,7 @@ tab_container.grid_rowconfigure(0, weight=1)
 tab_container.grid_columnconfigure(0, weight=1)
 
 # 1. YKİ SEKMESİ
-yki_frame = ctk.CTkFrame(tab_container, fg_color="transparent")
-yki_frame.grid(row=0, column=0, sticky="nsew")
-sekme_frames["yki"] = yki_frame
-
-main = ctk.CTkFrame(yki_frame, fg_color="transparent")
-main.pack(fill="both", expand=True, padx=15, pady=15)
-main.grid_columnconfigure(0, weight=0, minsize=480); main.grid_columnconfigure(1, weight=1); main.grid_columnconfigure(2, weight=0, minsize=380); main.grid_rowconfigure(0, weight=1)
-
-# ----- SOL SÜTUN -----
-left_panel = ctk.CTkFrame(main, width=480, fg_color="transparent")
-left_panel.grid(row=0, column=0, padx=(0,10), sticky="nsew")
-left_panel.grid_propagate(False) 
-left_panel.grid_rowconfigure(0, weight=1); left_panel.grid_rowconfigure(1, weight=1); left_panel.grid_columnconfigure(0, weight=1)
-
-cam_frame = ctk.CTkFrame(left_panel, corner_radius=12, fg_color="#000000", border_width=1, border_color="#000000")
-cam_frame.grid(row=0, column=0, pady=(0,5), sticky="nsew"); cam_frame.pack_propagate(False) 
-ctk.CTkLabel(cam_frame, text="[ İHA FPV KAMERA ]", font=FK, text_color="#FFFFFF").pack(pady=6)
-
-if EKSTRA_MODULLER_OK:
-    lbl_kamera = tk.Label(cam_frame, bg="#040810"); lbl_kamera.pack(expand=True) 
-
-map_frame = ctk.CTkFrame(left_panel, corner_radius=12, fg_color="#000000", border_width=1, border_color="#000000")
-map_frame.grid(row=1, column=0, pady=(5,0), sticky="nsew"); map_frame.pack_propagate(False)
-map_hdr_row = ctk.CTkFrame(map_frame, fg_color="transparent"); map_hdr_row.pack(fill="x", padx=4, pady=(2,0))
-ctk.CTkLabel(map_hdr_row, text="[ CANLI UYDU HARİTASI ]", font=FK, text_color="#FFFFFF").pack(side="left", padx=6, pady=3)
-
-def toggle_map_mode(event=None):
-    if MAP_ODAK_MODU[0] == "IHA":
-        MAP_ODAK_MODU[0] = "SERBEST"; lbl_map_mod.configure(text="✦ SERBEST", text_color="#FFFFFF", fg_color="#333333")
-    else:
-        MAP_ODAK_MODU[0] = "IHA"; lbl_map_mod.configure(text="✦ İHA KİLİT", text_color="#FFFFFF", fg_color="#000000")
-
-lbl_map_mod = ctk.CTkLabel(map_hdr_row, text="✦ İHA KİLİT", font=ctk.CTkFont(family="Consolas", size=11, weight="bold"), text_color="#FFFFFF", fg_color="#000000", corner_radius=5, cursor="hand2", padx=6, pady=2)
-lbl_map_mod.pack(side="right", padx=6, pady=3)
-lbl_map_mod.bind("<Button-1>", toggle_map_mode)
-
-if EKSTRA_MODULLER_OK:
+yif EKSTRA_MODULLER_OK:
     map_widget = tkintermapview.TkinterMapView(map_frame, corner_radius=8)
     map_widget.pack(fill="both", expand=True, padx=6, pady=(0,6))
     map_widget.set_tile_server("https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&s=Ga", max_zoom=22)
@@ -811,9 +775,19 @@ ctrl_bar.grid_rowconfigure(0, weight=1); ctrl_bar.grid_rowconfigure(1, weight=1)
 _FKB = ctk.CTkFont(family="Consolas", size=13, weight="bold")
 
 # Satır 1
-ctk.CTkButton(ctrl_bar, text="🔓 ARM", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=_arm).grid(row=0, column=0, padx=6, pady=(8,4), sticky="ew")
-ctk.CTkButton(ctrl_bar, text="✈ AUTO", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("AUTO")).grid(row=0, column=1, padx=6, pady=(8,4), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="🔓 ARM", fg_color="#14532D", hover_color="#15803d", font=_FKB, text_color="#FFFFFF", command=_arm).grid(row=0, column=0, padx=6, pady=(8,4), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="✈ AUTO", fg_color="#1e3a5f", hover_color="#2563eb", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("AUTO")).grid(row=0, column=1, padx=6, pady=(8,4), sticky="ew")
 ctk.CTkLabel(ctrl_bar, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF", fg_color="#000000", corner_radius=8).grid(row=0, column=2, rowspan=2, padx=12, pady=8, sticky="nsew")
+ctk.CTkButton(ctrl_bar, text="⟳ LOITER", fg_color="#064E3B", hover_color="#059669", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("LOITER")).grid(row=0, column=3, padx=6, pady=(8,4), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="⬆ TAKEOFF", fg_color="#2e1065", hover_color="#7c3aed", font=_FKB, text_color="#FFFFFF", command=lambda:_takeoff(50)).grid(row=0, column=4, padx=6, pady=(8,4), sticky="ew")
+
+# Satır 2
+ctk.CTkButton(ctrl_bar, text="🔒 DISARM", fg_color="#7f1d1d", hover_color="#b91c1c", font=_FKB, text_color="#FFFFFF", command=_disarm).grid(row=1, column=0, padx=6, pady=(4,8), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="🎯 GUIDED", fg_color="#1e3a5f", hover_color="#2563eb", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("GUIDED")).grid(row=1, column=1, padx=6, pady=(4,8), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="🏠 RTL", fg_color="#7c2d12", hover_color="#b91c1c", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("RTL")).grid(row=1, column=3, padx=6, pady=(4,8), sticky="ew")
+ctk.CTkButton(ctrl_bar, text="⬇ LAND", fg_color="#4c1d95", hover_color="#6d28d9", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("LAND")).grid(row=1, column=4, padx=6, pady=(4,8), sticky="ew")
+ sticky="ew")
+y="Consolas", size=22, weight="bold"), text_color="#FFFFFF", fg_color="#000000", corner_radius=8).grid(row=0, column=2, rowspan=2, padx=12, pady=8, sticky="nsew")
 ctk.CTkButton(ctrl_bar, text="⟳ LOITER", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("LOITER")).grid(row=0, column=3, padx=6, pady=(8,4), sticky="ew")
 ctk.CTkButton(ctrl_bar, text="⬆ TAKEOFF", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_takeoff(50)).grid(row=0, column=4, padx=6, pady=(8,4), sticky="ew")
 
@@ -1410,7 +1384,7 @@ def _build_panel(pwin=None):
     
     g_text = f"✓  Takım #{TAKIM_NO[0]}" if TAKIM_NO[0] > 0 else "⬤  Giriş yapılmadı"
     g_color = "#10B981" if TAKIM_NO[0] > 0 else "#64748b"
-    lbl_giris = ctk.CTkLabel(cg, text=g_text, font=pFU, text_color=g_color); lbl_giris.pack(pady=3)
+    lbl_giris = ctk.CTkLabel(cg, text=g_text, font=pFU, text_color="#FFFFFF"); lbl_giris.pack(pady=3)
 
     def giris():
         def _g():
@@ -1523,7 +1497,7 @@ def _build_panel(pwin=None):
                 row_lbls = []
                 vals = [str(t.get("takim_numarasi","?")), f"{t.get('iha_enlem',0):.5f}", f"{t.get('iha_boylam',0):.5f}", f"{t.get('iha_irtifa',0):.1f}m", f"{t.get('iha_yonelme',0):.0f}°", f"{t.get('iha_hizi',0):.1f}", f"{t.get('zaman_farki',0)}"]
                 for c,(v,w) in enumerate(zip(vals, [50,100,100,60,55,50,60])):
-                    lbl = ctk.CTkLabel(row_f, text=v, font=pFS, text_color="#cbd5e1", width=w, anchor="center")
+                    lbl = ctk.CTkLabel(row_f, text=v, font=pFS, text_color="#FFFFFF", width=w, anchor="center")
                     lbl.grid(row=0, column=c, padx=3, pady=2); row_lbls.append(lbl)
                 _W["dt_rows"].append(row_lbls)
         elif liste:
