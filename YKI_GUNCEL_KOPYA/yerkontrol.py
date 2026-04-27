@@ -312,8 +312,10 @@ def _hud_arka_plan():
                 glRotatef(math.degrees( pitch_pos),     1, 0, 0)  
                 glRotatef(math.degrees(-roll_pos),      0, 0, 1)  
 
-                # UI-REVİZYON: HUD Kaldırıldı, Orijinal Model Görünümü Geri Getirildi
+                # UI-REVİZYON: Model Görünürlüğü ve Işıklandırma Optimizasyonu
                 glEnable(GL_LIGHTING)
+                glEnable(GL_COLOR_MATERIAL)
+                glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
                 glColor3f(1.0, 1.0, 1.0) 
                 glCallList(model_list)
                 glDisable(GL_LIGHTING)
@@ -851,6 +853,10 @@ btn_land.grid(row=1, column=4, padx=5, pady=(0,10), sticky="ew")
 # HUD Ortasındaki Mod Etiketi
 lbl_hud_mode = ctk.CTkLabel(frame3d, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=24, weight="bold"), text_color="#00FFCC", fg_color="transparent")
 lbl_hud_mode.place(relx=0.5, rely=0.1, anchor="center")
+
+if OPENGL_OK:
+    lbl_hud = tk.Label(frame3d, bg="#040810")
+    lbl_hud.pack(fill="both", expand=True, padx=2, pady=(8,2))
 
 threading.Thread(target=lambda: app.after(1000, update_action_bar), daemon=True).start()
 
