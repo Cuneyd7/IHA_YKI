@@ -1525,13 +1525,12 @@ def _build_panel(pwin=None):
     log_tb.grid(row=8, column=0, padx=15, pady=(0,15), sticky="ew"); log_tb.configure(state="disabled")
 
     # Update döngüsü için referansları kaydet
-    _W["labels"]["lat"] = lbl_p_lat; _W["labels"]["lon"] = lbl_p_lon
-    _W["labels"]["alt"] = lbl_p_alt; _W["labels"]["hdg"] = lbl_p_hdg
-    _W["labels"]["mode"] = lbl_p_mode; _W["labels"]["batt"] = lbl_p_batt
-    _W["labels"]["hz"] = lbl_hz; _W["labels"]["kl"] = lbl_kl; _W["labels"]["km"] = lbl_km
-    _W["labels"]["qre"] = lbl_qre; _W["labels"]["qrb"] = lbl_qrb
-    _W["psv"] = PSV; _W["log_tb"] = log_tb; _W["diger_f"] = diger_f
-    _W["hss_tb"] = hss_tb; _W["btn_tel"] = btn_tel; _W["diger_yaz_fn"] = _diger_yaz
+    _W["psv"] = PSV
+    _W["log_tb"] = log_tb
+    _W["diger_f"] = diger_f
+    _W["hss_tb"] = hss_tb
+    _W["btn_tel"] = btn_tel
+    _W["diger_yaz_fn"] = _diger_yaz
 
 def _panel_update():
     """OPTİMİZASYON: Global panel update döngüsü. Hangi pencere aktifse ona yazar."""
