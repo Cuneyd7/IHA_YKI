@@ -784,10 +784,8 @@ ctk.CTkLabel(map_hdr_row, text="[ CANLI UYDU HARİTASI ]", font=FK, text_color="
 def toggle_map_mode(event=None):
     if MAP_ODAK_MODU[0] == "IHA":
         MAP_ODAK_MODU[0] = "SERBEST"; lbl_map_mod.configure(text="✦ SERBEST", text_color="#F59E0B", fg_color="#2a1a00")
-        print("[MAP] Serbest Mod Aktif")
     else:
         MAP_ODAK_MODU[0] = "IHA"; lbl_map_mod.configure(text="✦ İHA KİLİT", text_color="#10B981", fg_color="#022c22")
-        print("[MAP] İHA Kilit Modu Aktif")
 
 lbl_map_mod = ctk.CTkLabel(map_hdr_row, text="✦ İHA KİLİT", font=ctk.CTkFont(family="Consolas", size=11, weight="bold"), text_color="#10B981", fg_color="#022c22", corner_radius=5, cursor="hand2", padx=6, pady=2)
 lbl_map_mod.pack(side="right", padx=6, pady=3)
@@ -1305,21 +1303,7 @@ def map_loop():
                 try: ucak_marker.change_icon(yeni_ikon); ucak_marker.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
                 except: pass
 
-                # AKILLI DENETİM: Eğer kullanıcı haritayı elle kaydırdıysa otomatik SERBEST moda geç
-                _curr_map_pos = map_widget.get_position()
-                _last_set_pos = getattr(map_loop, '_last_set_pos', _curr_map_pos)
-                _map_dist = math.sqrt((_curr_map_pos[0]-_last_set_pos[0])**2 + (_curr_map_pos[1]-_last_set_pos[1])**2)
-                
-                if _map_dist > 0.0005 and MAP_ODAK_MODU[0] == "IHA":
-                    toggle_map_mode() # Otomatik serbest moda geç
-                
-                # Sadece İHA KİLİT modu aktifse haritayı merkezle
-                if MAP_ODAK_MODU[0] == "IHA":
-                    try: 
-                        map_widget.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
-                        map_loop._last_set_pos = (MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
-                    except: pass
-                
+                map_widget.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
                 LAST_MAP_UPDATE_TIME[0] = _now_map
                 map_loop._last_hdg = MAP_SMOOTH_HEADING[0]
 
