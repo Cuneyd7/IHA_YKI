@@ -10,7 +10,7 @@ class Color:
     BOLD = '\033[1m'
     END = '\033[0m'
 
-BASE_URL = "http://127.0.0.1:5000"
+BASE_URL = "http://127.0.0.25:5000"
 session = requests.Session()
 
 def log_success(msg):
