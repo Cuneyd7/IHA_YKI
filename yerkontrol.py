@@ -1113,6 +1113,8 @@ def _sv_batch_flush():
             SV[key].set(val)
 
 def telemetry_ui_loop():
+    # OPTİMİZASYON: Buffer'daki tüm SV değişikliklerini UI thread'de toplu flush et
+    _sv_batch_flush()
     try:
         _sv_set("roll",  f"{math.degrees(D.get('roll', 0)):+.1f} °")
         _sv_set("pitch", f"{math.degrees(D.get('pitch', 0)):+.1f} °")
@@ -1229,7 +1231,7 @@ def kamera_loop():
     app.after(33, kamera_loop)
 
 def map_loop():
-    """Sadece harita marker günceller — 80ms = ~12fps (tkintermapview ağır)."""
+    """OPTİMİZASYON: Delta threshold ile gereksiz harita render'ı engellenir."""
     global MAP_ILK_ODAK, LAST_MAP_UPDATE_TIME, ucak_marker
     if EKSTRA_MODULLER_OK and MAP_LERP_HAZIR[0]:
         if not MAP_ILK_ODAK: map_widget.set_zoom(16); MAP_ILK_ODAK = True
@@ -1250,16 +1252,26 @@ def map_loop():
         _hdg_fark = (float(MAP_HEDEF_HEADING[0]) - MAP_SMOOTH_HEADING[0] + 180) % 360 - 180
         MAP_SMOOTH_HEADING[0] = (MAP_SMOOTH_HEADING[0] + _hdg_fark * (1.0 - math.exp(-_dt_map / 0.10)) + math.degrees(D.get("yawspeed", 0.0)) * _dt_map * 0.3) % 360
 
+        # OPTİMİZASYON: Delta Threshold — konum çok az değiştiyse render atla (~0.5 metre)
+        _DELTA_THRESHOLD = 0.000005  # ~0.5m enlem/boylam farkı
+        _delta_lat = abs(MAP_SMOOTH_LAT[0] - prev_lat)
+        _delta_lon = abs(MAP_SMOOTH_LON[0] - prev_lon)
+        _delta_hdg = abs((MAP_SMOOTH_HEADING[0] - getattr(map_loop, '_last_hdg', 0) + 180) % 360 - 180)
+        _konum_degisti = _delta_lat > _DELTA_THRESHOLD or _delta_lon > _DELTA_THRESHOLD or _delta_hdg > 1.0
+
         yeni_ikon = UCAK_IKON_CACHE.get(int(MAP_SMOOTH_HEADING[0]) % 360)
         if yeni_ikon is not None:
             if ucak_marker is None:
                 ucak_marker = map_widget.set_marker(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0], icon=yeni_ikon)
-            else:
+                map_loop._last_hdg = MAP_SMOOTH_HEADING[0]
+            elif _konum_degisti:
+                # OPTİMİZASYON: Sadece konum anlamlı ölçüde değiştiyse marker ve kamera güncelle
                 try: ucak_marker.change_icon(yeni_ikon); ucak_marker.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
                 except: pass
 
                 map_widget.set_position(MAP_SMOOTH_LAT[0], MAP_SMOOTH_LON[0])
                 LAST_MAP_UPDATE_TIME[0] = _now_map
+                map_loop._last_hdg = MAP_SMOOTH_HEADING[0]
 
         # --- DİĞER TAKIMLARI THROTTLE ET (250ms'de bir güncelle) ---
         if diger_takimlar[0] and (_now_map - LAST_TEAM_MAP_UPDATE_TIME[0] > 0.25):
