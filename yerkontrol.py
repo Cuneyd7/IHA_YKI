@@ -441,8 +441,9 @@ def haritaya_hss_ciz(hss_listesi):
             path.append((lat + d_lat, lon + d_lon))
         
         try:
-            cizgi = map_widget.set_path(path, color="#ef4444", width=3)
-            HSS_POLI_NESNELERI.append(cizgi)
+            # OPTİMİZASYON: İçi dolu (Polygon) HSS bölgesi
+            poly = map_widget.set_polygon(path, outline_color="#ef4444", fill_color="#7f1d1d", border_width=2)
+            HSS_POLI_NESNELERI.append(poly)
             m = map_widget.set_marker(lat, lon, text=f"HSS ID:{h.get('id')} (r={r_m}m)")
             HSS_POLI_NESNELERI.append(m)
         except Exception as e:
@@ -450,12 +451,32 @@ def haritaya_hss_ciz(hss_listesi):
 
 def haritaya_qr_ciz(lat, lon):
     if not EKSTRA_MODULLER_OK: return
-    if QR_MARKER[0] is not None:
-        try: QR_MARKER[0].delete()
-        except: pass
+    for item in QR_MARKER:
+        if item is not None:
+            try: item.delete()
+            except: pass
+    QR_MARKER.clear()
+    
     try:
-        QR_MARKER[0] = map_widget.set_marker(lat, lon, text="QR HEDEF BÖLGESİ")
-    except: pass
+        # QR KARE Boyutu: 2.5m x 2.5m
+        d_lat = (1.25 / 111320.0) 
+        d_lon = (1.25 / (111320.0 * math.cos(math.radians(lat))))
+        
+        square_path = [
+            (lat + d_lat, lon - d_lon),
+            (lat + d_lat, lon + d_lon),
+            (lat - d_lat, lon + d_lon),
+            (lat - d_lat, lon - d_lon)
+        ]
+        
+        # QR Karesini çiz (Mavi/Mor tonlarında dolgulu kare)
+        qr_poly = map_widget.set_polygon(square_path, outline_color="#a78bfa", fill_color="#1e1b4b", border_width=3)
+        QR_MARKER.append(qr_poly)
+        
+        qr_txt = map_widget.set_marker(lat, lon, text="[ QR HEDEFİ 2.5x2.5m ]")
+        QR_MARKER.append(qr_txt)
+    except Exception as e:
+        print("QR Çizim Hatası:", e)
 
 if EKSTRA_MODULLER_OK:
     UCAK_BASE_IMG   = ucak_base_ciz()   
