@@ -661,21 +661,24 @@ _popout_windows = {}
 _kamera_labels = [] 
 
 def pop_out(ad, title):
+    # OPTİMİZASYON: Eğer yarışma paneli ise, zaten önceden build edildi (arka planda bekliyor)
+    if ad == "yarisma":
+        if ad in _popout_windows:
+            win = _popout_windows[ad]
+            if win.winfo_viewable():
+                win.withdraw(); _W["popout_active"] = False
+            else:
+                win.deiconify(); win.lift(); _W["popout_active"] = True
+            return
+
     if ad in _popout_windows and _popout_windows[ad].winfo_exists():
-        # OPTİMİZASYON: Pencere zaten varsa sadece öne getir
-        _popout_windows[ad].deiconify()
-        _popout_windows[ad].lift()
-        if ad == "yarisma": _W["popout_active"] = True
-        return
+        _popout_windows[ad].deiconify(); _popout_windows[ad].lift(); return
 
     f = sekme_frames.get(ad)
     if f is None: return
 
-    # OPTİMİZASYON: Pencereyi oluştur (Sadece ilk seferde)
     win = ctk.CTkToplevel(app)
-    win.title(f"⤢  {title}")
-    win.geometry("1400x860")
-    win.configure(bg="#020810")
+    win.title(f"⤢  {title}"); win.geometry("1400x860"); win.configure(bg="#020810")
     win.attributes("-topmost", True)
     _popout_windows[ad] = win
 
@@ -683,25 +686,12 @@ def pop_out(ad, title):
         lbl_kamera_pop = tk.Label(win, bg="#000000")
         lbl_kamera_pop.pack(fill="both", expand=True)
         _kamera_labels.append(lbl_kamera_pop)
-        
         def on_close_kamera():
             if lbl_kamera_pop in _kamera_labels: _kamera_labels.remove(lbl_kamera_pop)
-            win.withdraw() # Kapatmak yerine gizle
+            win.withdraw()
         win.protocol("WM_DELETE_WINDOW", on_close_kamera)
-        
-    elif ad == "yarisma":
-        # OPTİMİZASYON: Chrome hızı için widget'ları önceden kur ve sakla
-        _build_panel(win, "popout")
-        _W["popout_active"] = True
 
-        def on_close_yarisma():
-            _W["popout_active"] = False
-            win.withdraw() # Yok etme, gizle (Instant geri dönüş)
-            if aktif_sekme[0] == ad: sekme_ac(ad)
-        win.protocol("WM_DELETE_WINDOW", on_close_yarisma)
-
-    if aktif_sekme[0] == ad:
-        sekme_ac("yki")
+    if aktif_sekme[0] == ad: sekme_ac("yki")
 
 # ── Üst Bar ───────────────────────────────────────────────────
 top = ctk.CTkFrame(app, height=52, fg_color="#04080f", corner_radius=0)
@@ -1614,8 +1604,11 @@ def _build_panel(pwin, target="main"):
     inst["psv"] = PSV; inst["log_tb"] = log_tb; inst["diger_f"] = diger_f
     inst["diger_yaz_fn"] = _diger_yaz
 
+# OPTİMİZASYON: Label metinlerini cache'leyerek gereksiz redraw'u engelle
+_PANEL_TEXT_CACHE = {}
+
 def _panel_update():
-    """OPTİMİZASYON: Aynı anda hem ana hem pop-out paneli günceller (Sıfır Gecikme)."""
+    """OPTİMİZASYON: Instant update — sadece değişen değerleri UI'a yansıtır."""
     try:
         active_insts = ["main"]
         if _W["popout_active"]: active_insts.append("popout")
@@ -1625,14 +1618,21 @@ def _panel_update():
             L = inst.get("labels"); P = inst.get("psv")
             if not L or not P: continue
 
-            # Verileri bas
-            L["lat"].configure(text=f"{D.get('lat',0.0):.5f} °")
-            L["lon"].configure(text=f"{D.get('lon',0.0):.5f} °")
-            L["alt"].configure(text=f"{_agl_val[0]:.1f} m")
-            L["hdg"].configure(text=f"{D.get('heading',0)} °")
-            L["mode"].configure(text=D.get("mode","---"))
-            L["batt"].configure(text=f"{D.get('batt_pct',0)} %")
+            # OPTİMİZASYON: Text değişmediyse configure() çağırma (Redraw tasarrufu)
+            def _set_lbl(l_key, text):
+                c_key = f"{key}_{l_key}"
+                if _PANEL_TEXT_CACHE.get(c_key) != text:
+                    L[l_key].configure(text=text)
+                    _PANEL_TEXT_CACHE[c_key] = text
 
+            _set_lbl("lat",  f"{D.get('lat',0.0):.5f} °")
+            _set_lbl("lon",  f"{D.get('lon',0.0):.5f} °")
+            _set_lbl("alt",  f"{_agl_val[0]:.1f} m")
+            _set_lbl("hdg",  f"{D.get('heading',0)} °")
+            _set_lbl("mode", D.get("mode","---"))
+            _set_lbl("batt", f"{D.get('batt_pct',0)} %")
+
+            # PSV güncellemeleri (StringVar olduğu için cache zaten kendi içinde)
             P["enlem"].set(f"{D.get('lat',0.0):.6f}")
             P["boylam"].set(f"{D.get('lon',0.0):.6f}")
             P["irtifa"].set(f"{_agl_val[0]:.1f} m")
@@ -1652,12 +1652,12 @@ def _panel_update():
             if log_tb:
                 _log_yeni = "\n".join(_panel_log[-25:])
                 cache_key = f"_son_log_{key}"
-                if not hasattr(_panel_update, cache_key) or getattr(_panel_update, cache_key) != _log_yeni:
+                if getattr(_panel_update, cache_key, None) != _log_yeni:
                     setattr(_panel_update, cache_key, _log_yeni)
                     log_tb.configure(state="normal")
                     log_tb.delete("1.0","end"); log_tb.insert("end", _log_yeni); log_tb.see("end"); log_tb.configure(state="disabled")
-    except Exception as e: pass
-    app.after(500, _panel_update)
+    except: pass
+    app.after(400, _panel_update)
 
 # Uygulama başında update döngüsünü bir kez başlat
 app.after(1000, _panel_update)
@@ -1690,12 +1690,21 @@ yarisma_frame = ctk.CTkFrame(tab_container, fg_color="#020810", corner_radius=0)
 yarisma_frame.grid(row=0, column=0, sticky="nsew")
 sekme_frames["yarisma"] = yarisma_frame
 
+# OPTİMİZASYON: Başlangıçta tüm panelleri pre-build et (Arka planda hazır)
 _YARISMA_PARENT = yarisma_frame   
 _build_panel(yarisma_frame, "main")
 
+# Yarışma pop-out penceresini gizli olarak oluştur ve build et
+win_pop = ctk.CTkToplevel(app)
+win_pop.title("⤢  Yarışma Sunucusu"); win_pop.geometry("1400x860"); win_pop.configure(bg="#020810")
+win_pop.attributes("-topmost", True); win_pop.withdraw() # Gizli tut
+_popout_windows["yarisma"] = win_pop
+_build_panel(win_pop, "popout")
+win_pop.protocol("WM_DELETE_WINDOW", lambda: [win_pop.withdraw(), setattr(_W, "popout_active", False)])
+
 app.after(100, lambda: sekme_ac("yki"))
 app.after(150, telemetry_ui_loop)
-app.after(200, hud_loop)       # HUD 3D model — 16ms/frame
-app.after(220, kamera_loop)    # Kamera — 33ms/frame
-app.after(300, map_loop)       # Harita — 80ms/frame
+app.after(200, hud_loop)
+app.after(220, kamera_loop)
+app.after(300, map_loop)
 app.mainloop()
