@@ -205,13 +205,18 @@ def _hud_arka_plan():
         os.environ['SDL_VIDEO_WINDOW_POS'] = "-5000,-5000"
         pygame.init()
         pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
-        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, 4)
+        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, 8)
         pygame.display.gl_set_attribute(pygame.GL_DEPTH_SIZE, 24)
 
         screen = pygame.display.set_mode((HUD_W, HUD_H), pygame.OPENGL | pygame.DOUBLEBUF | pygame.NOFRAME)
         glEnable(GL_DEPTH_TEST); glDepthFunc(GL_LESS)
         glEnable(GL_CULL_FACE);  glCullFace(GL_BACK)
         glEnable(GL_MULTISAMPLE)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glEnable(GL_LINE_SMOOTH)
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
+        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST)
         glShadeModel(GL_SMOOTH)
         glEnable(GL_NORMALIZE)
         glEnable(GL_LIGHTING); glEnable(GL_LIGHT0)
@@ -245,9 +250,9 @@ def _hud_arka_plan():
 
         if NUMPY_OK: np_buf = np.empty((HUD_H, HUD_W, 3), dtype=np.uint8)
 
-        ROLL_OMEGA  = 8.0;   ROLL_ZETA  = 1.0   
-        PITCH_OMEGA = 5.0;   PITCH_ZETA = 1.1   
-        YAW_OMEGA   = 3.0;   YAW_ZETA   = 1.2   
+        ROLL_OMEGA  = 12.0;  ROLL_ZETA  = 0.85  
+        PITCH_OMEGA = 8.0;   PITCH_ZETA = 0.90  
+        YAW_OMEGA   = 5.0;   YAW_ZETA   = 1.0   
 
         roll_pos  = 0.0; roll_vel  = 0.0
         pitch_pos = 0.0; pitch_vel = 0.0
@@ -1143,10 +1148,11 @@ def hud_loop():
         if kare is not None:
             lw = max(lbl_hud.winfo_width(), 1); lh = max(lbl_hud.winfo_height(), 1)
             if lw == _HUD_LAST_SIZE[0] and lh == _HUD_LAST_SIZE[1]:
-                # Boyut değişmedi — sadece pixel verisini güncelle, resize yok
-                img_r = kare if (lw == HUD_W and lh == HUD_H) else kare.resize((lw, lh), Image.NEAREST)
+                # Boyut değişmedi — ancak kalite için yüksek kaliteli filtre kullan
+                img_r = kare if (lw == HUD_W and lh == HUD_H) else kare.resize((lw, lh), Image.LANCZOS)
             else:
-                img_r = kare if (lw == HUD_W and lh == HUD_H) else kare.resize((lw, lh), Image.BILINEAR)
+                # Boyut değişti — yüksek kaliteli yeniden boyutlandırma
+                img_r = kare if (lw == HUD_W and lh == HUD_H) else kare.resize((lw, lh), Image.LANCZOS)
                 _HUD_LAST_SIZE[0] = lw; _HUD_LAST_SIZE[1] = lh
             imgtk = ImageTk.PhotoImage(image=img_r)
             lbl_hud.imgtk = imgtk; lbl_hud.configure(image=imgtk)
