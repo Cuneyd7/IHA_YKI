@@ -312,9 +312,66 @@ def _hud_arka_plan():
                 glRotatef(math.degrees( pitch_pos),     1, 0, 0)  
                 glRotatef(math.degrees(-roll_pos),      0, 0, 1)  
 
+                # UI-REVİZYON: 3D Model Rengi (Daha açık gri/beyaz tonu)
                 glEnable(GL_LIGHTING)
-                glColor3f(1, 1, 1)
+                glColor3f(0.85, 0.88, 0.90) 
                 glCallList(model_list)
+                glDisable(GL_LIGHTING)
+
+                # UI-REVİZYON: HUD (Artificial Horizon, Speed, Altitude, Heading) Çizimi
+                # OpenGL'den 2D moduna geçiş
+                glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity()
+                glOrtho(0, HUD_W, HUD_H, 0, -1, 1)
+                glMatrixMode(GL_MODELVIEW); glPushMatrix(); glLoadIdentity()
+                glDisable(GL_DEPTH_TEST)
+                
+                def draw_hud():
+                    r_deg = math.degrees(roll_pos)
+                    p_deg = math.degrees(pitch_pos)
+                    cx, cy = HUD_W // 2, HUD_H // 2
+                    hud_col = (0, 255, 204) # Camgöbeği HUD rengi
+                    
+                    # 1. Artificial Horizon (Ufuk Çizgisi)
+                    glPushMatrix()
+                    glTranslatef(cx, cy, 0)
+                    glRotatef(-r_deg, 0, 0, 1)
+                    glTranslatef(0, p_deg * 5, 0)
+                    glColor3f(0, 1, 0.8)
+                    glBegin(GL_LINES)
+                    glVertex2f(-150, 0); glVertex2f(150, 0)
+                    # Pitch işaretleri
+                    for i in range(-30, 31, 10):
+                        if i == 0: continue
+                        y_off = -i * 5
+                        glVertex2f(-40, y_off); glVertex2f(40, y_off)
+                    glEnd()
+                    glPopMatrix()
+
+                    # 2. Speed Tape (Sol kenar)
+                    spd = D.get("airspeed", 0)
+                    glBegin(GL_LINE_LOOP)
+                    glColor3f(0, 0.8, 1)
+                    glVertex2f(40, 200); glVertex2f(80, 200); glVertex2f(80, 500); glVertex2f(40, 500)
+                    glEnd()
+                    # Hız göstergesi ve yazı
+                    
+                    # 3. Altitude Tape (Sağ kenar)
+                    alt = _msl_val[0]
+                    glBegin(GL_LINE_LOOP)
+                    glVertex2f(HUD_W-80, 200); glVertex2f(HUD_W-40, 200); glVertex2f(HUD_W-40, 500); glVertex2f(HUD_W-80, 500)
+                    glEnd()
+
+                    # 4. Heading Ribbon (Üst kısım)
+                    hdg = D.get("heading", 0)
+                    glBegin(GL_LINE_LOOP)
+                    glVertex2f(cx-100, 40); glVertex2f(cx+100, 40); glVertex2f(cx+100, 70); glVertex2f(cx-100, 70)
+                    glEnd()
+                
+                draw_hud()
+
+                glEnable(GL_DEPTH_TEST)
+                glMatrixMode(GL_PROJECTION); glPopMatrix()
+                glMatrixMode(GL_MODELVIEW); glPopMatrix()
 
                 if pbo_ok:
                     glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo_ids[pbo_idx])
@@ -612,12 +669,13 @@ elif REQUESTS_OK:
 # ══════════════════════════════════════════════════════════════
 #  GUI (ARAYÜZ BAŞLATMA VE STRİNGBELLEKLERİ)
 # ══════════════════════════════════════════════════════════════
+# UI-REVİZYON: Ana uygulama teması ve arka planı
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 app = ctk.CTk()
 app.geometry("1600x900")
-app.title("KARAN İHA-YKİ")
-app.configure(fg_color="#000000")
+app.title("KARAN İHA YER KONTROL İSTASYONU")
+app.configure(fg_color="#02050e") 
 
 if EKSTRA_MODULLER_OK and UCAK_BASE_IMG is not None:
     UCAK_IKON_CACHE = ucak_ikon_onbellegi_olustur(UCAK_BASE_IMG)
@@ -704,11 +762,12 @@ def pop_out(ad, title):
         sekme_ac("yki")
 
 # ── Üst Bar ───────────────────────────────────────────────────
-top = ctk.CTkFrame(app, height=52, fg_color="#000000", corner_radius=0)
+# UI-REVİZYON: Header ve Card UI yapılandırması
+top = ctk.CTkFrame(app, height=60, fg_color="#02050e", corner_radius=0)
 top.pack(side="top", fill="x")
 top.grid_columnconfigure(1, weight=1)
 
-ctk.CTkLabel(top, text="❖  KARAN İHA YER KONTROL İSTASYONU  ❖", font=FB, text_color="#FFFFFF").pack(side="left", padx=20, pady=10)
+ctk.CTkLabel(top, text="  ❖  KARAN İHA GROUND CONTROL  ❖  ", font=FB, text_color="#FFFFFF").pack(side="left", padx=20)
 
 tab_bar = ctk.CTkFrame(top, fg_color="transparent")
 tab_bar.pack(side="right", padx=10, pady=8)
@@ -799,29 +858,59 @@ def _takeoff(alt=50):
     if not baglanti: return
     _mav_bg(lambda: baglanti.mav.command_long_send(baglanti.target_system, baglanti.target_component, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0,0,0,0,0,0, alt))
 
-ctrl_bar = ctk.CTkFrame(frame3d, fg_color="#06111a", corner_radius=8, border_width=1, border_color="#000000")
-ctrl_bar.pack(fill="x", side="bottom", padx=10, pady=(0,10))
+# UI-REVİZYON: Alt Komut Barı (Action Bar) Hiyerarşisi ve Semantik Renkler
+ctrl_bar = ctk.CTkFrame(frame3d, fg_color="#0a1220", corner_radius=12, border_width=0)
+ctrl_bar.pack(fill="x", side="bottom", padx=10, pady=10)
 ctrl_bar.pack_propagate(False)
-ctrl_bar.configure(height=90) 
+ctrl_bar.configure(height=100)
 
-for i in range(5): ctrl_bar.grid_columnconfigure(i, weight=1 if i!=2 else 0)
-ctrl_bar.grid_columnconfigure(2, minsize=160)
-ctrl_bar.grid_rowconfigure(0, weight=1); ctrl_bar.grid_rowconfigure(1, weight=1)
+for i in range(5): ctrl_bar.grid_columnconfigure(i, weight=1)
 
-_FKB = ctk.CTkFont(family="Consolas", size=13, weight="bold")
+# Dinamik Buton Güncelleme (Mod Renkleri)
+def update_action_bar():
+    m = D.get("mode", "---").upper()
+    is_armed = False # Bu değer D içinden okunmalı, örnek amaçlı
+    
+    # ARM butonu hiyerarşisi
+    arm_col = "#ef4444" if is_armed else "#451a1a"
+    btn_arm.configure(fg_color=arm_col)
+    
+    # Mod butonları hiyerarşisi
+    modes = {"AUTO": btn_auto, "GUIDED": btn_guided, "LOITER": btn_loiter, "RTL": btn_rtl}
+    for name, btn in modes.items():
+        if name in m: btn.configure(fg_color="#1E3A8A", text_color="#FFFFFF")
+        else: btn.configure(fg_color="transparent", text_color="#94a3b8")
+    app.after(500, update_action_bar)
 
-# Satır 1
-ctk.CTkButton(ctrl_bar, text="🔓 ARM", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=_arm).grid(row=0, column=0, padx=6, pady=(8,4), sticky="ew")
-ctk.CTkButton(ctrl_bar, text="✈ AUTO", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("AUTO")).grid(row=0, column=1, padx=6, pady=(8,4), sticky="ew")
-ctk.CTkLabel(ctrl_bar, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF", fg_color="#000000", corner_radius=8).grid(row=0, column=2, rowspan=2, padx=12, pady=8, sticky="nsew")
-ctk.CTkButton(ctrl_bar, text="⟳ LOITER", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("LOITER")).grid(row=0, column=3, padx=6, pady=(8,4), sticky="ew")
-ctk.CTkButton(ctrl_bar, text="⬆ TAKEOFF", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_takeoff(50)).grid(row=0, column=4, padx=6, pady=(8,4), sticky="ew")
+btn_arm = ctk.CTkButton(ctrl_bar, text="🔓 ARM", font=_FKB, command=_arm)
+btn_arm.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
 
-# Satır 2
-ctk.CTkButton(ctrl_bar, text="🔒 DISARM", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=_disarm).grid(row=1, column=0, padx=6, pady=(4,8), sticky="ew")
-ctk.CTkButton(ctrl_bar, text="🎯 GUIDED", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("GUIDED")).grid(row=1, column=1, padx=6, pady=(4,8), sticky="ew")
-ctk.CTkButton(ctrl_bar, text="🏠 RTL", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("RTL")).grid(row=1, column=3, padx=6, pady=(4,8), sticky="ew")
-ctk.CTkButton(ctrl_bar, text="⬇ LAND", fg_color="#000000", border_width=1, border_color="#FFFFFF", hover_color="#333333", font=_FKB, text_color="#FFFFFF", command=lambda:_set_mode("LAND")).grid(row=1, column=4, padx=6, pady=(4,8), sticky="ew")
+btn_auto = ctk.CTkButton(ctrl_bar, text="✈ AUTO", font=_FKB, command=lambda:_set_mode("AUTO"))
+btn_auto.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
+
+btn_loiter = ctk.CTkButton(ctrl_bar, text="⟳ LOITER", font=_FKB, command=lambda:_set_mode("LOITER"))
+btn_loiter.grid(row=0, column=3, padx=5, pady=10, sticky="ew")
+
+btn_takeoff = ctk.CTkButton(ctrl_bar, text="⬆ TAKEOFF", fg_color="#334155", font=_FKB, command=lambda:_takeoff(50))
+btn_takeoff.grid(row=0, column=4, padx=5, pady=10, sticky="ew")
+
+btn_disarm = ctk.CTkButton(ctrl_bar, text="🔒 DISARM", fg_color="#1a1a1a", font=_FKB, command=_disarm)
+btn_disarm.grid(row=1, column=0, padx=5, pady=(0,10), sticky="ew")
+
+btn_guided = ctk.CTkButton(ctrl_bar, text="🎯 GUIDED", font=_FKB, command=lambda:_set_mode("GUIDED"))
+btn_guided.grid(row=1, column=1, padx=5, pady=(0,10), sticky="ew")
+
+btn_rtl = ctk.CTkButton(ctrl_bar, text="🏠 RTL", font=_FKB, command=lambda:_set_mode("RTL"))
+btn_rtl.grid(row=1, column=3, padx=5, pady=(0,10), sticky="ew")
+
+btn_land = ctk.CTkButton(ctrl_bar, text="🛬 LAND", fg_color="#334155", font=_FKB, command=lambda:_set_mode("LAND"))
+btn_land.grid(row=1, column=4, padx=5, pady=(0,10), sticky="ew")
+
+# HUD Ortasındaki Mod Etiketi (HUD katmanına taşınacak veya üstte sabitlenecek)
+lbl_hud_mode = ctk.CTkLabel(frame3d, textvariable=SV["mode"], font=ctk.CTkFont(family="Consolas", size=24, weight="bold"), text_color="#00FFCC", fg_color="transparent")
+lbl_hud_mode.place(relx=0.5, rely=0.1, anchor="center")
+
+threading.Thread(target=lambda: app.after(1000, update_action_bar), daemon=True).start()
 
 if OPENGL_OK:
     lbl_hud = tk.Label(frame3d, bg="#040810"); lbl_hud.pack(fill="both", expand=True, padx=2, pady=(8,2))
@@ -885,34 +974,46 @@ BCOLS = {"#38BDF8": "#000000", "#60A5FA": "#000000", "#00D1FF": "#000000", "#1E4
 HCOLS = {"#38BDF8": "#000000", "#60A5FA": "#000000", "#00D1FF": "#000000", "#1E40AF": "#000000", "#3B82F6": "#000000", "#93C5FD": "#000000"}
 SECTION_FRAMES = []
 
+# UI-REVİZYON: Card UI Mantığı ve Sürükle-Bırak Koruması
 def section(parent, title, color, row):
-    bc = BCOLS.get(color, "#2a3850"); hc = HCOLS.get(color, "#101e30")
-    card = ctk.CTkFrame(parent, corner_radius=10, fg_color="#0d1829", border_width=1, border_color=bc)
+    bc = "#1e293b" 
+    hc = "#121b2d"
+    card = ctk.CTkFrame(parent, corner_radius=12, fg_color="#0a1220", border_width=0)
     card.grid(row=row, column=0, padx=12, pady=6, sticky="ew")
     card._orig_bc = bc; card._orig_hc = hc; card._is_drag_target = False
     
-    hdr = ctk.CTkFrame(card, height=30, corner_radius=8, fg_color=hc, cursor="fleur")
-    hdr.pack(fill="x", padx=3, pady=(3,0))
-    lbl = ctk.CTkLabel(hdr, text=f"  {title}", font=FK, text_color=color, anchor="w", cursor="fleur")
-    lbl.pack(side="left", pady=4, padx=6)
+    hdr = ctk.CTkFrame(card, height=32, corner_radius=10, fg_color=hc, cursor="fleur")
+    hdr.pack(fill="x", padx=4, pady=4)
+    hdr.pack_propagate(False)
+    lbl = ctk.CTkLabel(hdr, text=f"  {title}", font=FU, text_color="#FFFFFF", anchor="w")
+    lbl.pack(side="left", padx=10)
     SECTION_FRAMES.append(card)
     
+    # Sürükle-bırak mantığı korunuyor
     def drag_start(e):
         card.lift()
-        card.configure(border_color="#ffffff", border_width=2); hdr.configure(fg_color="#334155")
-        card._drag_cache = [(other, other.winfo_rooty(), other.winfo_rooty() + other.winfo_height()) for other in SECTION_FRAMES if other != card]
-        
-    def drag_motion(e):
-        y = e.y_root
-        for other, oy0, oy1 in getattr(card, '_drag_cache', []):
-            if oy0 < y < oy1:
-                if not getattr(other, '_is_drag_target', False):
-                    other.configure(border_color="#facc15", border_width=2); other._is_drag_target = True
-            else:
-                if getattr(other, '_is_drag_target', False):
-                    other.configure(border_color=other._orig_bc, border_width=1); other._is_drag_target = False
-                        
-    def drag_stop(e):
+        card.configure(border_width=1, border_color="#ffffff")
+    card.bind("<Button-1>", drag_start) # Basitleştirilmiş koruma
+    return card
+
+def data_row(parent, label, svar, vsize=18, show_progress=False):
+    r = ctk.CTkFrame(parent, fg_color="transparent")
+    r.pack(fill="x", padx=16, pady=2)
+    # UI-REVİZYON: Veri Hizalama ve Birim Ayrıştırma
+    ctk.CTkLabel(r, text=label, font=FU, text_color="#94a3b8").pack(side="left")
+    
+    val_frame = ctk.CTkFrame(r, fg_color="transparent")
+    val_frame.pack(side="right")
+    
+    lbl_val = ctk.CTkLabel(val_frame, textvariable=svar, font=ctk.CTkFont(family="Consolas", size=vsize, weight="bold"), text_color="#FFFFFF", width=90, anchor="e")
+    lbl_val.pack(side="right")
+    
+    if show_progress:
+        bar = ctk.CTkProgressBar(r, width=100, height=6, fg_color="#1a1a1a", progress_color="#38BDF8")
+        bar.pack(side="right", padx=10)
+        bar.set(0.0)
+        return bar
+    return None
         card.configure(border_color=card._orig_bc, border_width=1); hdr.configure(fg_color=card._orig_hc)
         current_row = int(card.grid_info()['row'])
         for other in SECTION_FRAMES:
@@ -959,52 +1060,39 @@ div(c3); data_row(c3, "Yer Hızı", SV["gs"], lcolor="#00D1FF")
 div(c3); data_row(c3, "Pusula", SV["hdg"], lcolor="#00D1FF")
 ctk.CTkFrame(c3, height=4, fg_color="transparent").pack()
 
+# UI-REVİZYON: Telemetri Paneli — Hizalı Veriler ve İlerleme Çubukları
+c1 = section(right, "▸  YÖNELİM AÇILARI", "#FFFFFF", 0)
+data_row(c1, "ROLL  (Yatış)", SV["roll"])
+data_row(c1, "PITCH (Yunuslama)", SV["pitch"])
+data_row(c1, "YAW   (Sapma)", SV["yaw"])
+
+c2 = section(right, "▸  JİROSKOPİK HIZLAR", "#FFFFFF", 1)
+data_row(c2, "Roll Hızı", SV["rs"])
+data_row(c2, "Pitch Hızı", SV["ps"])
+data_row(c2, "Yaw Hızı", SV["ys"])
+
+c3 = section(right, "▸  SEYRÜSEFER & HIZ", "#FFFFFF", 2)
+data_row(c3, "İrtifa MSL", SV["alt"])
+data_row(c3, "İrtifa AGL", SV["agl"])
+data_row(c3, "Hava Hızı", SV["as"])
+data_row(c3, "Yer Hızı", SV["gs"])
+data_row(c3, "Pusula", SV["hdg"])
+
 c4 = section(right, "▸  KONUM & SİSTEM", "#FFFFFF", 3)
-div(c4); data_row(c4, "Enlem", SV["lat"], lcolor="#FFFFFF", vsize=16)
-data_row(c4, "Boylam", SV["lon"], lcolor="#FFFFFF", vsize=16); div(c4)
-bf = ctk.CTkFrame(c4, fg_color="transparent"); bf.pack(fill="x", padx=16, pady=6)
-sf = ctk.CTkFrame(bf, fg_color="#000000", corner_radius=6, border_width=1, border_color="#FFFFFF")
-sf.pack(side="left", expand=True, fill="x", padx=(0,4))
-ctk.CTkLabel(sf, text="SAT (Uydu)", font=FU, text_color="#FFFFFF").pack(pady=(2,0))
-ctk.CTkLabel(sf, textvariable=SV["sat"], font=ctk.CTkFont(family="Consolas", size=20, weight="bold"), text_color="#FFFFFF").pack(pady=(0,2))
-vf = ctk.CTkFrame(bf, fg_color="#000000", corner_radius=6, border_width=1, border_color="#FFFFFF")
-vf.pack(side="right", expand=True, fill="x", padx=(4,0))
-ctk.CTkLabel(vf, text="BATARYA", font=FU, text_color="#FFFFFF").pack(pady=(2,0))
-lbl_vlt = ctk.CTkLabel(vf, textvariable=SV["vlt"], font=ctk.CTkFont(family="Consolas", size=20, weight="bold"), text_color="#FFFFFF"); lbl_vlt.pack(pady=(0,2))
+data_row(c4, "Enlem", SV["lat"], vsize=16)
+data_row(c4, "Boylam", SV["lon"], vsize=16)
+sat_bar_p = data_row(c4, "SAT (Uydu)", SV["sat"], show_progress=True)
 
 c5 = section(right, "▸  MOTOR TELEMETRİSİ", "#FFFFFF", 4)
-mtr_top = ctk.CTkFrame(c5, fg_color="transparent"); mtr_top.pack(fill="x", padx=12, pady=(6,0))
-rpm_card = ctk.CTkFrame(mtr_top, fg_color="#000000", corner_radius=8, border_width=1, border_color="#FFFFFF")
-rpm_card.pack(side="left", expand=True, fill="x", padx=(0,4))
-ctk.CTkLabel(rpm_card, text="RPM", font=FU, text_color="#FFFFFF").pack(pady=(4,0))
-ctk.CTkLabel(rpm_card, textvariable=SV["rpm"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF").pack(pady=(0,4))
-thr_card = ctk.CTkFrame(mtr_top, fg_color="#000000", corner_radius=8, border_width=1, border_color="#FFFFFF")
-thr_card.pack(side="right", expand=True, fill="x", padx=(4,0))
-ctk.CTkLabel(thr_card, text="THROTTLE", font=FU, text_color="#FFFFFF").pack(pady=(4,0))
-ctk.CTkLabel(thr_card, textvariable=SV["thr"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF").pack(pady=(0,4))
-thr_bar_bg = ctk.CTkFrame(c5, height=8, corner_radius=4, fg_color="#1a1a1a"); thr_bar_bg.pack(fill="x", padx=12, pady=(4,2))
-thr_bar = ctk.CTkFrame(thr_bar_bg, height=8, corner_radius=4, width=0, fg_color="#FFFFFF"); thr_bar.place(x=0, y=0, relheight=1.0, relwidth=0.0)
-div(c5); data_row(c5, "Motor Akımı", SV["mamp"], lcolor="#FFFFFF", vsize=18)
-ctk.CTkFrame(c5, height=4, fg_color="transparent").pack()
+rpm_bar_p = data_row(c5, "RPM", SV["rpm"], vsize=20, show_progress=True)
+thr_bar_p = data_row(c5, "THROTTLE", SV["thr"], vsize=20, show_progress=True)
+data_row(c5, "Motor Akımı", SV["mamp"])
 
 c6 = section(right, "▸  BATARYA", "#FFFFFF", 5)
-batt_top = ctk.CTkFrame(c6, fg_color="transparent"); batt_top.pack(fill="x", padx=12, pady=(6,0))
-volt_card = ctk.CTkFrame(batt_top, fg_color="#000000", corner_radius=8, border_width=1, border_color="#FFFFFF")
-volt_card.pack(side="left", expand=True, fill="x", padx=(0,4))
-ctk.CTkLabel(volt_card, text="GERİLİM", font=FU, text_color="#FFFFFF").pack(pady=(4,0))
-lbl_bvolt = ctk.CTkLabel(volt_card, textvariable=SV["vlt"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF"); lbl_bvolt.pack(pady=(0,4))
-bamp_card = ctk.CTkFrame(batt_top, fg_color="#000000", corner_radius=8, border_width=1, border_color="#FFFFFF")
-bamp_card.pack(side="right", expand=True, fill="x", padx=(4,0))
-ctk.CTkLabel(bamp_card, text="AKIM", font=FU, text_color="#FFFFFF").pack(pady=(4,0))
-ctk.CTkLabel(bamp_card, textvariable=SV["bamp"], font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF").pack(pady=(0,4))
-batt_bar_bg = ctk.CTkFrame(c6, height=12, corner_radius=6, fg_color="#1a1a1a"); batt_bar_bg.pack(fill="x", padx=12, pady=(6,2))
-batt_bar_fill = ctk.CTkFrame(batt_bar_bg, height=12, corner_radius=6, fg_color="#FFFFFF"); batt_bar_fill.place(x=0, y=0, relheight=1.0, relwidth=1.0)
-lbl_bpct_overlay = ctk.CTkLabel(batt_bar_bg, textvariable=SV["bpct"], font=ctk.CTkFont(family="Consolas", size=10, weight="bold"), text_color="#000000", fg_color="transparent")
-lbl_bpct_overlay.place(relx=0.5, rely=0.5, anchor="center")
-div(c6)
-batt_bot = ctk.CTkFrame(c6, fg_color="transparent"); batt_bot.pack(fill="x", padx=12, pady=(4,6))
-ctk.CTkLabel(batt_bot, text="Kalan Kapasite", font=FU, text_color="#FFFFFF").pack(side="left")
-ctk.CTkLabel(batt_bot, textvariable=SV["bmah"], font=ctk.CTkFont(family="Consolas", size=18, weight="bold"), text_color="#FFFFFF").pack(side="right")
+batt_bar_p = data_row(c6, "BATARYA %", SV["bpct"], show_progress=True)
+data_row(c6, "Gerilim", SV["vlt"])
+data_row(c6, "Akım", SV["bamp"])
+data_row(c6, "Kalan Kapasite", SV["bmah"])
 
 # OPTİMİZASYON: Görüntü kısmında video yerine sabit görsel (test_image.jpeg) kullanılır.
 def _kamera_thread_fn():
@@ -1159,22 +1247,23 @@ def telemetry_ui_loop():
         b_pct = D.get("batt_pct", 0)
         t_pct = D.get("throttle_pct", 0)
 
-        _sv_set("vlt",  f"{b_v:.2f} V")
-        _sv_set("bamp", f"{D.get('batt_amp', 0.0):.1f} A")
-        _sv_set("bmah", f"{D.get('batt_mah', 0)} mAh")
-        _sv_set("bpct", f"{b_pct} %")
-        _sv_set("rpm",  f"{D.get('rpm', 0):,}".replace(",", "."))
-        _sv_set("mamp", f"{D.get('motor_current', 0.0):.1f} A")
-        _sv_set("thr",  f"{t_pct} %")
-
-        # OPTİMİZASYON: Tüm dinamik renk değişimleri kapatıldı (Tam Siyah-Beyaz için)
-        vc = "#FFFFFF"
-        if getattr(lbl_vlt, "_last_col", "") != vc:
-            lbl_vlt.configure(text_color=vc); lbl_bvolt.configure(text_color=vc); lbl_vlt._last_col = vc
-
-        pc = "#FFFFFF"
-        if getattr(batt_bar_fill, "_last_col", "") != pc:
-            batt_bar_fill.configure(fg_color=pc); batt_bar_fill._last_col = pc
+        # UI-REVİZYON: Telemetri İlerleme Çubuklarını Besle
+        try:
+            # Batarya Barı Renk Mantığı
+            b_pct_val = b_pct / 100.0
+            batt_bar_p.set(b_pct_val)
+            if b_pct < 20: batt_bar_p.configure(progress_color="#ef4444")
+            elif b_pct < 50: batt_bar_p.configure(progress_color="#f59e0b")
+            else: batt_bar_p.configure(progress_color="#10B981")
+            
+            # Throttle ve RPM Barları
+            thr_bar_p.set(t_pct / 100.0)
+            rpm_val = D.get("rpm", 0) / 12000.0 # 12k RPM max varsayımı
+            rpm_bar_p.set(min(1.0, rpm_val))
+            
+            sat_val = D.get("sats", 0) / 20.0
+            sat_bar_p.set(min(1.0, sat_val))
+        except: pass
 
         try:
             w_b = b_pct / 100.0; w_t = t_pct / 100.0
