@@ -413,10 +413,10 @@ def ucak_rakip_ciz():
     img  = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     fw, fh = int(4*SS), int(30*SS)
-    draw.ellipse([cx-fw, cy-fh, cx+fw, cy+fh], fill="#fbbf24", outline="#b45309", width=SS)
-    draw.polygon([(cx - int(3*SS), cy - int(4*SS)), (cx - int(30*SS), cy + int(8*SS)), (cx - int(29*SS), cy + int(13*SS)), (cx - int(2*SS), cy + int(2*SS))], fill="#d97706", outline="#b45309", width=SS)
-    draw.polygon([(cx + int(3*SS), cy - int(4*SS)), (cx + int(30*SS), cy + int(8*SS)), (cx + int(29*SS), cy + int(13*SS)), (cx + int(2*SS), cy + int(2*SS))], fill="#d97706", outline="#b45309", width=SS)
-    draw.ellipse([cx-int(2*SS), cy-fh+int(1*SS), cx+int(2*SS), cy-fh+int(5*SS)], fill="#f97316")
+    draw.ellipse([cx-fw, cy-fh, cx+fw, cy+fh], fill="#000000", outline="#000000", width=SS)
+    draw.polygon([(cx - int(3*SS), cy - int(4*SS)), (cx - int(30*SS), cy + int(8*SS)), (cx - int(29*SS), cy + int(13*SS)), (cx - int(2*SS), cy + int(2*SS))], fill="#000000", outline="#000000", width=SS)
+    draw.polygon([(cx + int(3*SS), cy - int(4*SS)), (cx + int(30*SS), cy + int(8*SS)), (cx + int(29*SS), cy + int(13*SS)), (cx + int(2*SS), cy + int(2*SS))], fill="#000000", outline="#000000", width=SS)
+    draw.ellipse([cx-int(2*SS), cy-fh+int(1*SS), cx+int(2*SS), cy-fh+int(5*SS)], fill="#000000")
     return img.resize((64, 64), Image.LANCZOS)
 
 def ucak_ikon_onbellegi_olustur(base_img):
@@ -447,9 +447,9 @@ def haritaya_hss_ciz(hss_listesi):
         
         try:
             # OPTİMİZASYON: Daha belirgin İçi dolu (Polygon) HSS bölgesi
-            poly = map_widget.set_polygon(path, outline_color="#ef4444", fill_color="#7f1d1d", border_width=2)
+            poly = map_widget.set_polygon(path, outline_color="#FF0000", fill_color="#FF0000", border_width=2)
             HSS_POLI_NESNELERI.append(poly)
-            m = map_widget.set_marker(lat, lon, text=f"HSS ID:{h.get('id')} (r={r_m}m)")
+            m = map_widget.set_marker(lat, lon)
             HSS_POLI_NESNELERI.append(m)
         except Exception as e:
             print("HSS Çizim Hatası:", e)
@@ -478,7 +478,7 @@ def haritaya_qr_ciz(lat, lon):
         qr_poly = map_widget.set_polygon(square_path, outline_color="#a78bfa", fill_color="#1e1b4b", border_width=3)
         QR_MARKER.append(qr_poly)
         
-        qr_txt = map_widget.set_marker(lat, lon, text="[ QR HEDEFİ 2.5x2.5m ]")
+        qr_txt = map_widget.set_marker(lat, lon, text="qr")
         QR_MARKER.append(qr_txt)
     except Exception as e:
         print("QR Çizim Hatası:", e)
@@ -1299,7 +1299,7 @@ def map_loop():
                     except: pass
                 else:
                     try:
-                        m = map_widget.set_marker(t_lat, t_lon, text=f"Rakip {t_no}", icon=r_ikon)
+                        m = map_widget.set_marker(t_lat, t_lon, icon=r_ikon)
                         RAKIP_MARKER_NESNELERI[t_no] = m
                     except: pass
             silinecekler = set(RAKIP_MARKER_NESNELERI.keys()) - guncel_takimlar
