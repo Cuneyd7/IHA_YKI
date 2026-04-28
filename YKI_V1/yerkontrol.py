@@ -826,7 +826,7 @@ if EKSTRA_MODULLER_OK:
     map_widget = tkintermapview.TkinterMapView(map_frame, corner_radius=8)
     map_widget.pack(fill="both", expand=True, padx=6, pady=(0,6))
     map_widget.set_tile_server("https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&s=Ga", max_zoom=22)
-    map_widget.set_position(41.0, 28.9); map_widget.set_zoom(12)
+    map_widget.set_position(41.185, 28.740); map_widget.set_zoom(14)
 
 # ----- ORTA SÜTUN -----
 frame3d = ctk.CTkFrame(main, corner_radius=12, fg_color="#000000", border_width=1, border_color="#000000")
@@ -1299,7 +1299,7 @@ def map_loop():
                     except: pass
                 else:
                     try:
-                        m = map_widget.set_marker(t_lat, t_lon, icon=r_ikon)
+                        m = map_widget.set_marker(t_lat, t_lon, text="", icon=r_ikon)
                         RAKIP_MARKER_NESNELERI[t_no] = m
                     except: pass
             silinecekler = set(RAKIP_MARKER_NESNELERI.keys()) - guncel_takimlar
