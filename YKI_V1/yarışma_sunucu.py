@@ -63,8 +63,8 @@ def telemetri():
         "konumBilgileri": [
             {
                 "takim_numarasi": 2,
-                "iha_enlem": 41.104500,
-                "iha_boylam": 29.024500,
+                "iha_enlem": 41.186000,
+                "iha_boylam": 28.745000,
                 "iha_irtifa": 45.0,
                 "iha_dikilme": 5.0,
                 "iha_yonelme": 45.0,
@@ -74,8 +74,8 @@ def telemetri():
             },
             {
                 "takim_numarasi": 3,
-                "iha_enlem": 41.099500,
-                "iha_boylam": 29.019000,
+                "iha_enlem": 41.181000,
+                "iha_boylam": 28.745000,
                 "iha_irtifa": 38.0,
                 "iha_dikilme": -2.0,
                 "iha_yonelme": 180.0,
@@ -103,7 +103,7 @@ def kamikaze():
 @app.route('/api/qr_koordinati', methods=['GET'])
 def qr_koordinati():
     print("[QR KOORDİNATI SORGULANDI]")
-    return jsonify({"qrEnlem": 41.102200, "qrBoylam": 29.022000}), 200
+    return jsonify({"qrEnlem": 41.183500, "qrBoylam": 28.745000}), 200
 
 # 7. Hava Savunma Sistemi (HSS)
 @app.route('/api/hss_koordinatlari', methods=['GET'])
@@ -112,8 +112,8 @@ def hss():
     cevap = {
         "sunucusaati": get_saat(),
         "hss_koordinat_bilgileri": [
-            {"id": 0, "hssEnlem": 41.106500, "hssBoylam": 29.026500, "hssYaricap": 100},
-            {"id": 1, "hssEnlem": 41.097500, "hssBoylam": 29.017500, "hssYaricap": 120}
+            {"id": 0, "hssEnlem": 41.185000, "hssBoylam": 28.740000, "hssYaricap": 100},
+            {"id": 1, "hssEnlem": 41.182000, "hssBoylam": 28.740000, "hssYaricap": 120}
         ]
     }
     return jsonify(cevap), 200
